@@ -1,30 +1,49 @@
-# s02: Tool Protocol
+# s02: Tool Protocol（ツールプロトコル）
 
-## なぜこの章が必要か
+`s01 > [ s02 ] s03 > s04 > s05 > s06 | s07 > s08 > s09 > s10 > s11 > s12`
 
-一つのアクション面を持つループは本物ですが、まだ粗すぎます。次は能力を明示的で構造化されたものにします。
+> *能力追加 = ループを書き換えず Tool を足す —— 名前・schema・handler を registry に。*
+>
+> **Harness 層**：ディスパッチ —— モデルが安全に触れる範囲を広げる。
 
-## コアメカニズム
+## 問題
 
-- ツールを名前付きプロトコルオブジェクトとして定義する
-- 各ツールに入力 schema を与える
-- 一つの registry に登録する
-- ループはツール名で dispatch する
+bash だけだとファイル操作はシェル任せになり、パスやクォートで壊れやすい。専用の read/write/edit なら **handler 内** でサンドボックスと長さ制限ができる。
 
-## Python コードへの対応
+## 解決の形
 
-`agents/s02_tool_use.py` はループを変えず、一つの bash 面を構造化ツール registry に置き換えます。
+```
++--------+      +-------+      +------------------+
+|  User  | ---> |  LLM  | ---> | ToolRegistry     |
++--------+      +---+---+      |  .call(name,**)  |
+                    ^          +--------+---------+
+                    |                   |
+                    +---- tool_result ---+
+```
 
-## 意図的に単純化している点
+`run_loop()` はそのまま。`ToolRegistry` に `bash`、`read_file`、`write_file`、`edit_file` を登録（`base_tools()`）。
 
-製品レベルのツール層は approval、rendering、rich output、telemetry も扱いますが、ここでは name、schema、handler だけを残します。
+## 動き
 
-## 試してみること
+`base_tools()` が各ツールに `input_schema` と `workdir` を閉じ込めた handler を渡す。`safe_path()` でワークスペース外を防ぎ、読み書きは `_shared.py` で長さを切る。
 
-- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。
-- この章の新機構を実際に使わないと進まないタスクを与える。
-- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。
+`s02_tool_use.py` のシステムプロンプトは、ファイルは専用ツール、シェル固有の挙動が必要なときだけ bash。
 
-## 次章へのつながり
+## s01 からの差分
 
-ツール層が安定したら、エージェントは自分の作業について可視状態を持てるようになります。
+| 要素 | s01 | s02 |
+|------|-----|-----|
+| ツール数 | 1 | 4（bash + read/write/edit） |
+| 分发 | bash のみ | 名前で `ToolRegistry.call` |
+| パス | なし | `safe_path` |
+
+## 試す
+
+```sh
+cd learn-real-claude-code
+python agents/s02_tool_use.py
+```
+
+1. `Read README.md (first 40 lines).`
+2. `Add a tiny note.txt with today's date.`
+3. `Edit note.txt to append one line.`

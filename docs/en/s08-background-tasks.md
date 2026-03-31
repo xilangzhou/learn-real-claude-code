@@ -1,30 +1,38 @@
 # s08: Background Runtime
 
-## Why This Chapter Exists
+`s01 > s02 > s03 > s04 > s05 > s06 | s07 > [ s08 ] s09 > s10 > s11 > s12`
 
-Some operations are too slow to sit inline inside the foreground reasoning loop.
+> *Do not block the main loop on slow commands — run them in a thread, queue results back into the chat.*
+>
+> **Harness layer**: background — the harness owns lifecycle; the model only issues commands.
 
-## Core Mechanism
+## Problem
 
-- spawn long work into a background runtime
-- return a stable handle immediately
-- allow explicit polling
-- feed completion notifications back into the foreground conversation
+`pytest`, installs, builds — they take minutes. Blocking the loop means the model waits and the UX feels frozen.
 
-## Mapping To The Python Code
+## Approach
 
-`agents/s08_background_tasks.py` keeps the core lesson focused on handles, polling, and notification reinjection.
+`BackgroundManager.run()` starts a daemon thread around `subprocess`, short uuid task id; on completion, push results into a thread-safe queue. On **every LLM request**, `before_request` runs `drain_notifications()` and, if anything completed, appends a user message `<task-notifications>...</task-notifications>`.
 
-## What Is Intentionally Simplified
+`background_check` inspects one task or lists all.
 
-The teaching runtime is intentionally small. The point is to show why background work needs runtime semantics, not just threads.
+## Behavior
 
-## Try It
+The main scheduling loop stays single-threaded; parallelism is subprocess + result collection. Timeout after 300s is recorded as timeout.
 
-- Run `python agents/s08_background_tasks.py` if the filename matches the chapter script, or open the file directly if you are reading first.
-- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.
-- Compare the visible runtime state before and after the tool call or control-flow change.
+## Changes vs s07
 
-## Bridge To The Next Chapter
+| Piece | s07 | s08 |
+|-------|-----|-----|
+| Execution | synchronous | + background shell + notifications |
+| Tools | task CRUD set | + `background_run`, `background_check` |
 
-If the runtime can own multiple units of work, the next step is to let multiple named workers collaborate on them.
+## Try it
+
+```sh
+cd learn-real-claude-code
+python agents/s08_background_tasks.py
+```
+
+1. `Run sleep 3 && echo done in background, then do something else until notification appears.`
+2. `List background tasks with background_check.`

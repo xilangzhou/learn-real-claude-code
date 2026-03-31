@@ -1,30 +1,40 @@
-# s09: Team Mailboxes
+# s09: Team Mailboxes（チームメールボックス）
 
-## なぜこの章が必要か
+`s01 > s02 > s03 > s04 > s05 > s06 | s07 > s08 > [ s09 ] s10 > s11 > s12`
 
-エージェントの数を増やすだけでは不十分です。メッセージ、識別、ルーティングが明示されて初めて協調は教えられ、デバッグ可能になります。
+> *複数人で動くならまずメールボックス —— 身元と JSONL の inbox が共有の脳より観察しやすい。*
+>
+> **Harness 層**：協働の面 —— リードとメンバーがそれぞれループを回す。
 
-## コアメカニズム
+## 問題
 
-- worker に安定した名前を与える
-- mailbox 経由で通信を route する
-- 各 worker が自分の loop と state を持つ
-- message passing を協調面として扱う
+s04 の subagent は一回限り。s08 のバックグラウンドはシェルだけ。**複数ターンの協働** には安定した身元と、届け先のある inbox が要る。
 
-## Python コードへの対応
+## 方針
 
-`agents/s09_agent_teams.py` は mailbox bus と team manager を導入し、workers が一つの隠れた心を共有しているふりをしません。
+- **MailboxBus**：`.lrcc/team/inbox/<name>.jsonl`、追記書き、読み取りで **drain**。
+- **TeamManager**：`.lrcc/team/config.json` に名簿と状態。`team_spawn` がスレッドで `run_loop` を回し、各リクエスト前に `before_request` で未読 inbox を注入。
 
-## 意図的に単純化している点
+リード向けツール：`team_spawn`、`send_message`、`read_inbox`、`team_list`。
 
-メッセージ輸送層は意図的に素朴です。教材の焦点は洗練された transport ではなく、明示的な協調です。
+## 挙動
 
-## 試してみること
+メンバー側の registry は基本ツール + 他者への `send_message`。リードの `send_message` は常に `"lead"` から。
 
-- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。
-- この章の新機構を実際に使わないと進まないタスクを与える。
-- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。
+## s08 からの差分
 
-## 次章へのつながり
+| 要素 | s08 | s09 |
+|------|-----|-----|
+| 並行 | バックグラウンドシェルのみ | スレッドごとに agent loop |
+| 通信 | なし | JSONL |
 
-メッセージ面ができると、ランタイムは通常会話と型付き協調要求を区別できるようになります。
+## 試す
+
+```sh
+cd learn-real-claude-code
+python agents/s09_agent_teams.py
+```
+
+1. `Spawn a teammate "alice" with a short coding prompt, then send_message to alice.`
+2. `read_inbox` でリードに返信があるか（モデル次第）。
+3. `team_list` で状態確認。

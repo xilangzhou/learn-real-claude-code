@@ -1,30 +1,36 @@
-# s07: Persistent Task Runtime
+# s07: Persistent Tasks（永続タスク）
 
-## なぜこの章が必要か
+`s01 > s02 > s03 > s04 > s05 > s06 | [ s07 ] s08 > s09 > s10 > s11 > s12`
 
-チャット内の checklist は便利ですが、セッションと共に消えます。本格的な仕事追跡には専用の保存先とライフサイクルが必要です。
+> *タスクはディスクに生きる —— 会話が compact されても消えない。*
+>
+> **Harness 層**：永続化 —— `blocked_by` はファイルにあり、モデルの記憶にない。
 
-## コアメカニズム
+## 問題
 
-- タスクをメッセージ履歴の外に永続化する
-- task create/get/list/update を支える
-- タスクを durable runtime state として扱う
-- session todo と概念的に分離する
+s03 の todo はセッション終了で消える。s06 の compact 後は会話上のタスク説明も消える。本番の仕事には **複数ターンにまたがり復元できる** 記録が要る。
 
-## Python コードへの対応
+## 方針
 
-`agents/s07_task_system.py` は専用ランタイムフォルダに永続状態を書き込み、task plane がチャット窓に依存しないようにします。
+`TaskStore` が `.lrcc/tasks/<task_list_id>/`（既定 `default`）に書き込む。タスクごとに JSON：`id`、`subject`、`status`、`owner`、`blocked_by`、タイムスタンプなど。完了時 `_clear_dependency` で他タスクの `blocked_by` から該当 id を外す。
 
-## 意図的に単純化している点
+## ツール
 
-教材版は小さなファイルベース store を使います。ポイントは durability と concern separation であって、製品級オーケストレーションではありません。
+`task_create`、`task_get`、`task_list`、`task_update`。ID は高水位ファイルで衝突を避ける。
 
-## 試してみること
+## s06 からの差分
 
-- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。
-- この章の新機構を実際に使わないと進まないタスクを与える。
-- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。
+| 要素 | s06 | s07 |
+|------|-----|-----|
+| 作業単位 | なし | ディスク上の JSON タスク |
+| 依存 | なし | `blocked_by` リスト |
 
-## 次章へのつながり
+## 試す
 
-永続状態が整うと、前景ループが進んでも続き得る作業をランタイムが所有できるようになります。
+```sh
+cd learn-real-claude-code
+python agents/s07_task_system.py
+```
+
+1. `Create three tasks A,B,C; make B depend on A, C depend on B.`
+2. `Complete A and list — B should be unblocked.`

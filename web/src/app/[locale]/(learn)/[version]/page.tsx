@@ -24,7 +24,7 @@ export default async function VersionPage({
   if (!versionData || !meta) {
     return (
       <div className="py-20 text-center">
-        <h1 className="text-2xl font-bold">Version not found</h1>
+        <h1 className="text-2xl font-bold">{getTranslations(locale, "version")("not_found")}</h1>
         <p className="mt-2 text-zinc-500">{version}</p>
       </div>
     );

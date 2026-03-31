@@ -1,30 +1,41 @@
-# s12: Worktree Isolation
+# s12: Worktree Isolation (Worktree 隔离)
 
-## 为什么需要这一章
+`s01 > s02 > s03 > s04 > s05 > s06 | s07 > s08 > s09 > s10 > s11 > [ s12 ]`
 
-如果多个工作流仍然共享同一个文件系统表面，那么仅有逻辑层的共享状态还不够。
+> *「任务管目标，目录管执行」* —— 控制面与执行面分开。
+>
+> **Harness 层**：隔离 —— 并行时少踩文件。
 
-## 核心机制
+## 问题
 
-- 把任务绑定到隔离 worktree
-- 让隔离成为运行时能力，而不是操作者技巧
-- 在事件日志中记录生命周期
-- 把 task state 视作控制面，把文件系统隔离视作执行面
+多人同时改同一工作树，未提交改动会互相踩。s11 能认领任务，但若执行仍在同一目录，冲突照旧。
 
-## 这一章如何映射到 Python 代码
+## 解决方案
 
-`agents/s12_worktree_task_isolation.py` 把 task board、worktree 建立和事件日志捆在一起，让隔离能力可检查。
+- **TaskBoard**（`.lrcc/isolation/tasks/`）：任务 JSON 带 `worktree` 字段；`bind(task_id, name)` 时若仍为 `pending` 则置 `in_progress`。
+- **WorktreeStore**：在仓库根下 `.lrcc/isolation/worktrees/`，若检测到 git 仓库则 `git worktree add -b wt/<name>`；否则只建目录。`index.json` 登记 name、path、branch、`task_id`。
+- **EventLog**：`events.jsonl` 记录 create/remove/task.completed 等。
 
-## 这里刻意简化了什么
+工具：`task_create`、`task_list`、`worktree_create`（可选 `task_id` 绑定）、`worktree_remove`（可选 `complete_task` 同步完成任务）、`worktree_list`、`worktree_events`。
 
-教学版不需要覆盖所有 branch 管理边界情况，重点是把文件系统隔离提升成课程中的一等能力。
+## 工作原理
 
-## 建议你自己试一试
+`REPO_ROOT = detect_repo_root(cwd) or cwd`，没有 git 时退化为普通目录隔离，课仍能跑。
 
-- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。
-- 给模型一个必须用到本章机制的任务，而不是只问概念定义。
-- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。
+## 相对 s11 的变更
 
-## 它如何连接到下一章
+| 组件 | s11 | s12 |
+|------|-----|-----|
+| 执行位置 | 共享 cwd | 每 lane 独立 path |
+| 磁盘 | autonomy 任务 | + worktree 索引 + 事件流 |
 
-到这里，这条课程终于形成了一个可信的小型运行时：循环、工具、可见状态、委托、记忆、任务、并发、协作和隔离全部接上了。
+## 试一试
+
+```sh
+cd learn-real-claude-code
+python agents/s12_worktree_task_isolation.py
+```
+
+1. `task_create` 再 `worktree_create` 带上 `task_id`。
+2. `worktree_list` / `worktree_events` 看登记与日志。
+3. `worktree_remove` 且 `complete_task=true` 收尾。

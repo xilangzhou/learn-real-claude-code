@@ -1,30 +1,41 @@
-# s11: Self-Organizing Workers
+# s11: Self-Organizing Workers (自组织工作者)
 
-## 为什么需要这一章
+`s01 > s02 > s03 > s04 > s05 > s06 | s07 > s08 > s09 > s10 > [ s11 ] s12`
 
-如果团队里的每一步动作都来自 lead 指派，那么它仍然很像脚本。真正有用的自主性来自 worker 能自己发现、认领并继续工作。
+> *「没活可以闲，有活自己领」* —— 看板 + 收件箱 + `before_request` 注入。
+>
+> **Harness 层**：自治入口 —— harness 塞线索，模型决定动不动手。
 
-## 核心机制
+## 问题
 
-- 维护共享任务板
-- 给每个 worker 一个 inbox
-- 让 worker 在 idle 周期里轮询
-- 允许本地策略，比如自动认领开放任务
+若每件事都要人下指令，多 agent 只是脚本换人跑。你希望 **未认领任务** 和 **新邮件** 在模型睁眼时就能看见。
 
-## 这一章如何映射到 Python 代码
+## 解决方案
 
-`agents/s11_autonomous_agents.py` 不把自主性讲成神秘属性，而是把它落在共享状态和小规则上。
+- **TaskBoard**：`.lrcc/autonomy/tasks/*.json`，`unclaimed()` 找 `pending`、无 `owner`、无 `blocked_by`。
+- **Inbox**：`.lrcc/autonomy/inbox/*.jsonl`，逻辑同邮箱。
+- **`before_request`**：优先注入未读 inbox；否则若存在未认领任务，注入 `<auto-claim-opportunity>` 提示第一条。
+- 工具：`task_create`、`task_list`、`claim_task`、`send_message`、`idle`（表示「本轮先停，交给 harness」）。
 
-## 这里刻意简化了什么
+## 工作原理
 
-这里的局部策略故意很简单，重点是展示“自主性如何从运行时结构涌现”，而不是最优调度。
+自治不是模型「变聪明了」，而是 **每轮请求前** 多了一段结构化输入。认领用 `claim_task` 写回 owner 与状态。
 
-## 建议你自己试一试
+（实现里还有会话时长与 `idle-timeout` 的占位逻辑，读代码时以 `s11_autonomous_agents.py` 为准。）
 
-- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。
-- 给模型一个必须用到本章机制的任务，而不是只问概念定义。
-- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。
+## 相对 s10 的变更
 
-## 它如何连接到下一章
+| 组件 | s10 | s11 |
+|------|-----|-----|
+| 任务来源 | 无共享看板 | `.lrcc/autonomy/tasks` |
+| 驱动方式 | 纯工具 | + `before_request` 注入机会 |
 
-当 worker 已经可以自组织，最后缺的就是把它们的执行表面隔离开，避免并发工作互相碰撞。
+## 试一试
+
+```sh
+cd learn-real-claude-code
+python agents/s11_autonomous_agents.py
+```
+
+1. `task_create` 几条，再观察模型是否在注入提示后 `claim_task`。
+2. 用 `send_message` 给 `lead` 发信，看下一轮是否进 `<inbox>`。

@@ -1,30 +1,49 @@
 # s02: Tool Protocol
 
-## Why This Chapter Exists
+`s01 > [ s02 ] s03 > s04 > s05 > s06 | s07 > s08 > s09 > s10 > s11 > s12`
 
-A loop with one action surface is real, but still too crude. The next step is to make capabilities explicit and structured.
+> *Add capability by adding tools, not by rewriting the loop — name, schema, handler, all in one registry.*
+>
+> **Harness layer**: dispatch — widen what the model can touch safely.
 
-## Core Mechanism
+## Problem
 
-- define tools as named protocol objects
-- give each tool an input schema
-- register them in one registry
-- let the loop dispatch by tool name
+Bash-only means every file op is shell glue; paths and quoting break easily. Dedicated read/write/edit handlers can sandbox and truncate in one place.
 
-## Mapping To The Python Code
+## Shape of the solution
 
-`agents/s02_tool_use.py` keeps the loop unchanged and only swaps the tool pool from one bash tool to a structured registry.
+```
++--------+      +-------+      +------------------+
+|  User  | ---> |  LLM  | ---> | ToolRegistry     |
++--------+      +---+---+      |  .call(name,**)  |
+                    ^          +--------+---------+
+                    |                   |
+                    +---- tool_result ---+
+```
 
-## What Is Intentionally Simplified
+`run_loop()` stays the same; `ToolRegistry` now holds `bash`, `read_file`, `write_file`, `edit_file` from `base_tools()`.
 
-The full product tool layer would also care about approvals, rendering, rich outputs, and telemetry. Here we keep only name, schema, and handler.
+## How it works
 
-## Try It
+`base_tools()` wires `input_schema` and closure handlers with `workdir`. `safe_path()` keeps paths inside the workspace; reads/writes are length-capped in `_shared.py`.
 
-- Run `python agents/s02_tool_use.py` if the filename matches the chapter script, or open the file directly if you are reading first.
-- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.
-- Compare the visible runtime state before and after the tool call or control-flow change.
+`s02_tool_use.py` nudges the model: use file tools for files; use bash only when you need shell semantics.
 
-## Bridge To The Next Chapter
+## Changes vs s01
 
-Once tools are stable, the agent can start keeping visible state about its own work.
+| Piece | s01 | s02 |
+|-------|-----|-----|
+| Tool count | 1 | 4 (bash + read/write/edit) |
+| Dispatch | bash only | `ToolRegistry.call` by name |
+| Paths | none | `safe_path` |
+
+## Try it
+
+```sh
+cd learn-real-claude-code
+python agents/s02_tool_use.py
+```
+
+1. `Read README.md (first 40 lines).`
+2. `Add a tiny note.txt with today's date.`
+3. `Edit note.txt to append one line.`

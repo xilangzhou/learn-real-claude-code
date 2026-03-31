@@ -1,30 +1,43 @@
 # s04: Delegation Modes
 
-## Why This Chapter Exists
+`s01 > s02 > s03 > [ s04 ] s05 > s06 | s07 > s08 > s09 > s10 > s11 > s12`
 
-Older teaching material often treats every subagent as a clean-room child. That is too simple to explain modern delegation behavior.
+> *Child work runs separately; the parent only gets a summary — but a clean history and a fork with inherited context are different beasts.*
+>
+> **Harness layer**: delegation — which history the child loop uses.
 
-## Core Mechanism
+## Problem
 
-- fresh delegation starts from a clean history
-- forked delegation inherits scoped context
-- both run a focused child loop
-- the parent usually gets back a summary instead of the full child transcript
+When the main thread is full of tool noise, “go check this for me” drags everything into the child. You want a concise answer, not a full transcript.
 
-## Mapping To The Python Code
+Sometimes the child must continue the thread: **fresh** is too bare; **fork** fits.
 
-`agents/s04_subagent.py` models the two modes with one delegate tool so the difference stays visible in the same file.
+## Approach
 
-## What Is Intentionally Simplified
+One `delegate` tool with `mode`:
 
-Real systems have more worker types and more careful context inheritance rules. The teaching version keeps only the minimal strategic distinction.
+- **fresh**: child starts from a single user message; empty history.
+- **fork**: compress recent parent turns with `summarize_messages(parent_messages, keep_last=8)`, wrap in `<inherited-context>`, then add the directive.
 
-## Try It
+The child still uses `run_loop()` with full `base_tools` and **no** `delegate` (no recursive delegation).
 
-- Run `python agents/s04_subagent.py` if the filename matches the chapter script, or open the file directly if you are reading first.
-- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.
-- Compare the visible runtime state before and after the tool call or control-flow change.
+## Wiring
 
-## Bridge To The Next Chapter
+`DelegationRunner` snapshots parent `messages` each `run_session`; the handler calls `run_worker(..., parent_messages=self.parent_messages)`.
 
-If workers can be created on demand, the next question is how to load domain knowledge on demand as well.
+## Changes vs s03
+
+| Piece | s03 | s04 |
+|-------|-----|-----|
+| Subtasks | none | `delegate` + child `run_loop` |
+| Context | single track | parent / child split |
+
+## Try it
+
+```sh
+cd learn-real-claude-code
+python agents/s04_subagent.py
+```
+
+1. `Delegate in fresh mode: list files in agents/ and return a one-line summary.`
+2. `Fork mode: continue from our thread — check whether s04 uses summarize_messages.`

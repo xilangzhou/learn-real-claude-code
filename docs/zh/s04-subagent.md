@@ -1,30 +1,43 @@
-# s04: Delegation Modes
+# s04: Delegation Modes (委托模式)
 
-## 为什么需要这一章
+`s01 > s02 > s03 > [ s04 ] s05 > s06 | s07 > s08 > s09 > s10 > s11 > s12`
 
-旧教学材料往往把所有 subagent 都讲成 clean-room child，但这已经不足以解释现代委托行为。
+> *「子活独立跑，父对话只收摘要」* —— 但干净上下文和带上下文的 fork 不是一回事。
+>
+> **Harness 层**：委托 —— 控制子循环用哪种历史。
 
-## 核心机制
+## 问题
 
-- fresh 委托从干净历史启动
-- fork 委托继承受限上下文
-- 两者都会运行一个聚焦子循环
-- 父 agent 通常只拿回摘要，而不是完整子对话
+主对话里堆满工具输出时，「帮我去查一下」这类子任务会把噪声全带进主线。你需要子 worker 只回报结论，而不是整段 transcript。
 
-## 这一章如何映射到 Python 代码
+有时子任务又要延续当前讨论：`fresh` 太干，`fork` 更合适。
 
-`agents/s04_subagent.py` 用同一个 delegate 工具承载两种模式，让差异在同一文件里清晰可见。
+## 解决方案
 
-## 这里刻意简化了什么
+一个 `delegate` 工具，参数里选 `mode`：
 
-真实系统会有更多 worker 类型和更细的上下文继承规则，教学版只保留最核心的策略分野。
+- **fresh**：子循环从单条 user 消息开始，历史为空。
+- **fork**：用 `summarize_messages(parent_messages, keep_last=8)` 压成短摘要，包在 `<inherited-context>` 里再拼指令。
 
-## 建议你自己试一试
+子循环仍走同一个 `run_loop()`，registry 是全套 `base_tools`，没有 `delegate`（避免递归委托）。
 
-- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。
-- 给模型一个必须用到本章机制的任务，而不是只问概念定义。
-- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。
+## 工作原理
 
-## 它如何连接到下一章
+`DelegationRunner` 在每次 `run_session` 时挂上当前父 `messages`，handler 里调 `run_worker(..., parent_messages=self.parent_messages)`。
 
-既然 worker 可以按需生成，下一个自然问题就是：领域知识能不能也按需加载。
+## 相对 s03 的变更
+
+| 组件 | s03 | s04 |
+|------|-----|-----|
+| 子任务 | 无 | `delegate` + 子 `run_loop` |
+| 上下文 | 单轨 | 父 / 子分离 |
+
+## 试一试
+
+```sh
+cd learn-real-claude-code
+python agents/s04_subagent.py
+```
+
+1. `Delegate in fresh mode: list files in agents/ and return a one-line summary.`
+2. `Fork mode: continue from our thread — check whether s04 uses summarize_messages.`

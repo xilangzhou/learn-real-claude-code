@@ -40,7 +40,7 @@ export function StepControls({
         </div>
       </div>
 
-      {/* Controls */}
+      {/* Controls — aligned with examples/learn-claude-code/web */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1">
           <button

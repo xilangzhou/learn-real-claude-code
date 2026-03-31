@@ -1,30 +1,40 @@
-# s03: Session State
+# s03: Session State（セッション状態）
 
-## なぜこの章が必要か
+`s01 > s02 > [ s03 ] s04 > s05 > s06 | s07 > s08 > s09 > s10 > s11 > s12`
 
-短期の可視状態がないと、モデルはサブタスク間を漂い、次に何をするつもりだったかを失いやすくなります。
+> *複数ステップは先に書いてから実行 —— todo はセッション内の道しるべで、永続タスクシステムではない。*
+>
+> **Harness 層**：セッション状態 —— 「どこまでやったか」を雑談から引き剥がす。
 
-## コアメカニズム
+## 問題
 
-- 短いチェックリストを隠れた推論の外に置く
-- 人間が読める規模に制限する
-- 同時に一つだけを active にする
-- 永続状態ではなく session guidance として扱う
+ステップが増えると、重複したり飛んだりしやすい。会話メモリだけだと長くなるほどブレる。
 
-## Python コードへの対応
+## 方針
 
-`agents/s03_todo_write.py` はメモリ上の `TodoManager` を `todo_write` で公開し、可視のセッションチェックリストにします。
+`todo_write` とメモリ上の `TodoManager`：`pending` / `in_progress` / `completed`。**同時に `in_progress` は一つだけ**。`in_progress` には必ず `active_form`（今やっている一行）。
 
-## 意図的に単純化している点
+旧教材とは違い、**N ラウンドで nag** するロジックはない。schema とシステムプロンプトで縛る。
 
-ここで大事なのは実装詳細より概念境界です。これはまだ永続タスクランタイムではなく、現在セッションの案内です。
+## 挙動
 
-## 試してみること
+更新は `render()` で読みやすい文字列として `tool_result` に返る。全部完了するとリストは空になる。
 
-- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。
-- この章の新機構を実際に使わないと進まないタスクを与える。
-- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。
+これは第7章のディスク上のタスクグラフとは別物。ここは **この会話を乱さない**、そちらは **セッションをまたぐ仕事**。
 
-## 次章へのつながり
+## s02 からの差分
 
-作業状態を外在化できるようになると、委任は魔法ではなくランタイム設計の選択になります。
+| 要素 | s02 | s03 |
+|------|-----|-----|
+| ツール | 基本4つ | + `todo_write` |
+| 状態 | なし | `TodoManager.items` |
+
+## 試す
+
+```sh
+cd learn-real-claude-code
+python agents/s03_todo_write.py
+```
+
+1. `Refactor a small function: use todo_write to track 3 steps, then execute.`
+2. `Fix imports in one file — keep exactly one in_progress item.`

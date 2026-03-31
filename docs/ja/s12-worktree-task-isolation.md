@@ -1,30 +1,41 @@
-# s12: Worktree Isolation
+# s12: Worktree Isolation（Worktree 分離）
 
-## なぜこの章が必要か
+`s01 > s02 > s03 > s04 > s05 > s06 | s07 > s08 > s09 > s10 > s11 > [ s12 ]`
 
-複数の workstream が同じファイルシステム面を触り続けるなら、論理的共有状態だけでは不十分です。
+> *タスクは目的、ディレクトリは実行。* 制御面と実行面を分ける。
+>
+> **Harness 層**：隔離 —— 並列でファイルを踏みにくくする。
 
-## コアメカニズム
+## 問題
 
-- タスクを分離された worktree に結び付ける
-- 分離を operator trick ではなく runtime 能力にする
-- event log にライフサイクルを書く
-- task state を control plane、filesystem isolation を execution plane とみなす
+全員が同じ作業ツリーを触ると、未提交の変更が衝突する。s11 でタスクを取っても、実行が同じツリーなら問題は残る。
 
-## Python コードへの対応
+## 方針
 
-`agents/s12_worktree_task_isolation.py` は task board 状態、worktree 作成、event log を結び付け、分離を観測可能にします。
+- **TaskBoard**（`.lrcc/isolation/tasks/`）：タスク JSON に `worktree`。`bind(task_id, name)` で適宜 `pending` → `in_progress`。
+- **WorktreeStore**：リポジトリ直下の `.lrcc/isolation/worktrees/`。git があれば `git worktree add -b wt/<name>`、なければ通常ディレクトリ。`index.json` に name、path、branch、`task_id`。
+- **EventLog**：`events.jsonl` で create/remove/task.completed など。
 
-## 意図的に単純化している点
+ツール：`task_create`、`task_list`、`worktree_create`（任意 `task_id`）、`worktree_remove`（任意 `complete_task` で紐づくタスク完了）、`worktree_list`、`worktree_events`。
 
-教材版は branch 管理の全 edge case を扱いません。焦点はファイルシステム分離をカリキュラムの一級能力にすることです。
+## 挙動
 
-## 試してみること
+`REPO_ROOT = detect_repo_root(cwd) or cwd`。git がなくてもディレクトリ隔離で教材は回る。
 
-- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。
-- この章の新機構を実際に使わないと進まないタスクを与える。
-- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。
+## s11 からの差分
 
-## 次章へのつながり
+| 要素 | s11 | s12 |
+|------|-----|-----|
+| 実行場所 | 共有 cwd | lane ごとの path |
+| ディスク | autonomy タスク | + worktree 索引 + イベントログ |
 
-ここでカリキュラムは信じられる小さなランタイムに到達します。loop、tools、visible state、delegation、memory、tasks、concurrency、collaboration、isolation が揃いました。
+## 試す
+
+```sh
+cd learn-real-claude-code
+python agents/s12_worktree_task_isolation.py
+```
+
+1. `task_create` のあと `task_id` 付きで `worktree_create`。
+2. `worktree_list` / `worktree_events` で登録とログ。
+3. `complete_task=true` で `worktree_remove` して締める。

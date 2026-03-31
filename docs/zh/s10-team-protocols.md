@@ -1,30 +1,41 @@
-# s10: Team Protocols
+# s10: Team Protocols (团队协议)
 
-## 为什么需要这一章
+`s01 > s02 > s03 > s04 > s05 > s06 | s07 > s08 > s09 > [ s10 ] s11 > s12`
 
-团队里的消息并不都是普通文本。有些消息会开启一个生命周期，运行时必须记住并在之后匹配它。
+> *「要握手，就别只靠聊天」* —— request_id + pending/approved/rejected。
+>
+> **Harness 层**：协议状态 —— 存在内存 + `.lrcc/protocols/` 目录（本课主要用 `ProtocolState` 内存表）。
 
-## 核心机制
+## 问题
 
-- 为重要协调消息加入 request id
-- 跟踪 pending、approved、rejected 状态
-- 把 plan 和 shutdown 建模成类型化请求
-- 让运行时轮询并解析协议状态
+邮箱里随便发一句「关了吧」容易扯皮：谁在等谁、批没批。关机、改计划这类事需要 **可核对的请求 ID**。
 
-## 这一章如何映射到 Python 代码
+## 解决方案
 
-`agents/s10_team_protocols.py` 用一个很接地气的事实来教学：协议其实就是“消息 + 生命周期状态”。
+`ProtocolState` 维护两套表：`shutdown_requests`、`plan_requests`，键为短 `request_id`。工具：
 
-## 这里刻意简化了什么
+- `request_shutdown` / `respond_shutdown`
+- `submit_plan` / `review_plan`
+- `protocol_state` 查看当前表
 
-教学版只保留少量协议，关键不是协议种类多，而是说明“类型化协调需要记忆，不只是更好的措辞”。
+`resolve()` 把状态写成 `approved` 或 `rejected`，并可附 `feedback`。
 
-## 建议你自己试一试
+注意：这一版 **没有** 再走邮箱里自定义 message type；协议状态在 `ProtocolState` 里闭环，教学目的是「带 ID 的状态机」，不是完整消息总线。
 
-- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。
-- 给模型一个必须用到本章机制的任务，而不是只问概念定义。
-- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。
+## 相对 s09 的变更
 
-## 它如何连接到下一章
+| 组件 | s09 | s10 |
+|------|-----|-----|
+| 协调 | 自由文本 | + 结构化 shutdown / plan |
+| 追踪 | 无 | `request_id` + 状态字段 |
 
-既然运行时已经能显式协调 worker，那么它也可以进一步允许 worker 围绕共享状态自协调。
+## 试一试
+
+```sh
+cd learn-real-claude-code
+python agents/s10_team_protocols.py
+```
+
+1. `request_shutdown` 对一个名字，再 `respond_shutdown` 批准或拒绝。
+2. `submit_plan` 再 `review_plan` 走通一条计划。
+3. `protocol_state` 看两张表。

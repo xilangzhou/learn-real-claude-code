@@ -1,30 +1,40 @@
 # s03: Session State
 
-## Why This Chapter Exists
+`s01 > s02 > [ s03 ] s04 > s05 > s06 | s07 > s08 > s09 > s10 > s11 > s12`
 
-Without visible short-horizon state, the model often drifts between subtasks and forgets what it intended to do next.
+> *Multi-step work: write the plan, then execute — session todos navigate the turn, not the durable task graph.*
+>
+> **Harness layer**: session state — pull “where we are” out of chit-chat.
 
-## Core Mechanism
+## Problem
 
-- store a short checklist outside the hidden reasoning
-- limit the list to a human-sized plan
-- allow only one active item
-- treat it as session guidance rather than durable project state
+With many steps, the model repeats work or skips steps. Relying on chat memory alone drifts as context grows.
 
-## Mapping To The Python Code
+## Approach
 
-`agents/s03_todo_write.py` keeps a `TodoManager` in memory and exposes it through `todo_write` as the visible session checklist.
+Add `todo_write` backed by an in-memory `TodoManager`: `pending` / `in_progress` / `completed`, **only one `in_progress` at a time**, and `in_progress` requires `active_form` (a short line for what is happening now).
 
-## What Is Intentionally Simplified
+Unlike the older course: this repo has **no** “nag after N rounds” logic — validation is schema + system prompt only.
 
-The important correction is conceptual: this is not yet the durable task runtime. It is only the current session guide.
+## Behavior
 
-## Try It
+Updates `render()` into readable text in `tool_result`. When everything completes, the list clears.
 
-- Run `python agents/s03_todo_write.py` if the filename matches the chapter script, or open the file directly if you are reading first.
-- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.
-- Compare the visible runtime state before and after the tool call or control-flow change.
+This is **not** chapter 7’s on-disk task graph: here we keep **this conversation** on track; s07 tracks **cross-session, recoverable** units of work.
 
-## Bridge To The Next Chapter
+## Changes vs s02
 
-The moment work can be externalized, delegation stops being magical and starts becoming a runtime design choice.
+| Piece | s02 | s03 |
+|-------|-----|-----|
+| Tools | base four | + `todo_write` |
+| State | none | `TodoManager.items` |
+
+## Try it
+
+```sh
+cd learn-real-claude-code
+python agents/s03_todo_write.py
+```
+
+1. `Refactor a small function: use todo_write to track 3 steps, then execute.`
+2. `Fix imports in one file — keep exactly one in_progress item.`

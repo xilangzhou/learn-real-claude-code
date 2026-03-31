@@ -1,30 +1,38 @@
-# s08: Background Runtime
+# s08: Background Runtime (后台任务)
 
-## 为什么需要这一章
+`s01 > s02 > s03 > s04 > s05 > s06 | s07 > [ s08 ] s09 > s10 > s11 > s12`
 
-有些操作太慢，不能继续以内联方式塞在前台推理循环里。
+> *「慢的别堵在主循环里」* —— 线程跑命令，结果排队注回对话。
+>
+> **Harness 层**：后台 —— harness 管生命周期，模型只发指令。
 
-## 核心机制
+## 问题
 
-- 把长任务转交后台运行时
-- 立即返回稳定句柄
-- 允许显式轮询
-- 把完成通知重新注入前台对话
+`pytest`、安装依赖这类命令要跑很久。阻塞式执行的话，模型只能干等，交互很差。
 
-## 这一章如何映射到 Python 代码
+## 解决方案
 
-`agents/s08_background_tasks.py` 把核心教学焦点放在句柄、轮询和通知回注三件事上。
+`BackgroundManager.run()` 起守护线程跑 `subprocess`，任务 id 短 uuid；完成时把结果写进线程安全队列。每次 **LLM 请求前** `before_request` 里 `drain_notifications()`，若有完成项，追加一条 user 消息 `<task-notifications>...</task-notifications>`。
 
-## 这里刻意简化了什么
+`background_check` 可查单个或全部任务状态。
 
-教学版 runtime 故意保持很小，重点是说明后台工作需要“运行时语义”，而不只是线程。
+## 工作原理
 
-## 建议你自己试一试
+主循环仍是单线程调度；并行只发生在子进程与收集结果。超时 300s 会记为 timeout。
 
-- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。
-- 给模型一个必须用到本章机制的任务，而不是只问概念定义。
-- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。
+## 相对 s07 的变更
 
-## 它如何连接到下一章
+| 组件 | s07 | s08 |
+|------|-----|-----|
+| 执行 | 同步 | + 后台 shell + 通知 |
+| 工具 | 任务四件套 | + `background_run`、`background_check` |
 
-既然运行时已经能拥有多个工作单元，下一步自然是让多个命名 worker 围绕它们协作。
+## 试一试
+
+```sh
+cd learn-real-claude-code
+python agents/s08_background_tasks.py
+```
+
+1. `Run sleep 3 && echo done in background, then do something else until notification appears.`
+2. `List background tasks with background_check.`

@@ -1,30 +1,40 @@
-# s03: Session State
+# s03: Session State (会话待办)
 
-## 为什么需要这一章
+`s01 > s02 > [ s03 ] s04 > s05 > s06 | s07 > s08 > s09 > s10 > s11 > s12`
 
-如果没有可见的短周期状态，模型很容易在多个子任务之间漂移，忘记自己下一步本来要做什么。
+> *「多步活，先写清再干」* —— todo 是会话内的导航，不是持久任务系统。
+>
+> **Harness 层**：会话状态 —— 把「做到哪了」从闲聊里拽出来。
 
-## 核心机制
+## 问题
 
-- 把短清单放到隐藏推理之外
-- 把计划限制在人类可读的规模内
-- 同一时间只允许一个活动项
-- 把它当成会话引导，而不是持久项目状态
+步骤一多，模型容易重复劳动或跳步。纯靠对话记忆，长一点就漂。
 
-## 这一章如何映射到 Python 代码
+## 解决方案
 
-`agents/s03_todo_write.py` 在内存里维护 `TodoManager`，再通过 `todo_write` 把它暴露成可见会话清单。
+加一个 `todo_write` 工具，背后是一个内存里的 `TodoManager`：维护 `pending` / `in_progress` / `completed`，**同一时刻只允许一条 `in_progress`**，`in_progress` 必须带 `active_form`（当前正在做的那句短描述）。
 
-## 这里刻意简化了什么
+和旧课不同：本仓库 **没有**「几轮不更新就 nag」的逻辑，约束全靠 schema + 系统提示。
 
-这里最重要的纠正不是实现细节，而是概念边界：这还不是持久任务运行时，只是当前会话指南。
+## 工作原理
 
-## 建议你自己试一试
+`todos` 更新后 `render()` 成可读文本返回给 `tool_result`。全部完成时列表会清空成「没有未完成项」。
 
-- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。
-- 给模型一个必须用到本章机制的任务，而不是只问概念定义。
-- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。
+这和第七章的磁盘任务图是两层东西：这里管 **这一轮对话怎么不乱**，第七章管 **跨会话、可恢复的工作单元**。
 
-## 它如何连接到下一章
+## 相对 s02 的变更
 
-当工作状态可以外化之后，委托就不再是神秘技巧，而开始变成一个运行时设计选择。
+| 组件 | s02 | s03 |
+|------|-----|-----|
+| 工具 | 基础四件套 | + `todo_write` |
+| 状态 | 无 | `TodoManager.items` |
+
+## 试一试
+
+```sh
+cd learn-real-claude-code
+python agents/s03_todo_write.py
+```
+
+1. `Refactor a small function: use todo_write to track 3 steps, then execute.`
+2. `Fix imports in one file — keep exactly one in_progress item.`

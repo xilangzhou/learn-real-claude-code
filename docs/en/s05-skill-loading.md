@@ -1,30 +1,42 @@
 # s05: Skill Discovery
 
-## Why This Chapter Exists
+`s01 > s02 > s03 > s04 > [ s05 ] s06 | s07 > s08 > s09 > s10 > s11 > s12`
 
-Packing every domain instruction into the system prompt makes the context heavy and unfocused.
+> *Listing every skill body in the prompt is wasteful — discover, activate, then load.*
+>
+> **Harness layer**: on-demand knowledge — keep heavy text out of the static system prompt.
 
-## Core Mechanism
+## Problem
 
-- treat a skill as metadata plus instructions
-- discover available skills from directories and conditions
-- activate only the relevant skill for the current task
-- inject the content late instead of keeping it always in context
+Long domain docs in system prompt cost tokens and attention. The model mainly needs **what exists** and **when to read which file**.
 
-## Mapping To The Python Code
+## Approach
 
-`agents/s05_skill_loading.py` keeps the lesson centered on discovery, filtering, and activation rather than on fancy prompt templating.
+`SkillLoader` walks `skills/` and `.claude/skills/` for `SKILL.md`, parses YAML frontmatter (`name`, `description`, `paths`).
 
-## What Is Intentionally Simplified
+- Skills **without** `paths`: start **active**.
+- Skills **with** `paths`: **activate** only after you call the tool with touched paths (substring match).
 
-The full product can load from many sources and apply richer matching rules. The teaching version keeps just enough structure to explain why the system exists.
+Tools: `activate_skills(paths)`, `load_skill(name)`. Only **active** skills can be loaded with full body.
 
-## Try It
+## Behavior
 
-- Run `python agents/s05_skill_loading.py` if the filename matches the chapter script, or open the file directly if you are reading first.
-- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.
-- Compare the visible runtime state before and after the tool call or control-flow change.
+System prompt lists `list_active()` only; bodies arrive via `tool_result` wrapped as `<skill name="..." source="...">`.
 
-## Bridge To The Next Chapter
+## Changes vs s04
 
-Late-loaded knowledge helps, but long sessions still fail if the harness cannot manage its context window.
+| Piece | s04 | s05 |
+|-------|-----|-----|
+| Knowledge | none structured | metadata + body + conditional activation |
+| Tools | base + delegate | + `activate_skills`, `load_skill` |
+
+## Try it
+
+```sh
+cd learn-real-claude-code
+python agents/s05_skill_loading.py
+```
+
+1. `What skills are active?`
+2. `Load one active skill by name and summarize its first section.`
+3. After editing a file that matches a `paths` pattern, call `activate_skills` and see if more skills turn active.

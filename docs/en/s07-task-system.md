@@ -1,30 +1,36 @@
-# s07: Persistent Task Runtime
+# s07: Persistent Tasks
 
-## Why This Chapter Exists
+`s01 > s02 > s03 > s04 > s05 > s06 | [ s07 ] s08 > s09 > s10 > s11 > s12`
 
-A checklist inside the chat is useful, but it disappears with the session. Serious work tracking needs its own storage and lifecycle.
+> *Tasks live on disk — they do not disappear when the chat is compacted.*
+>
+> **Harness layer**: durability — `blocked_by` lives in files, not in the model’s head.
 
-## Core Mechanism
+## Problem
 
-- persist tasks outside the message history
-- support task create, get, list, and update
-- treat tasks as durable runtime state
-- keep them conceptually separate from session todos
+s03 todos vanish when the session ends; after s06 compaction, task descriptions in chat can vanish too. Real work needs **multi-turn, recoverable** records.
 
-## Mapping To The Python Code
+## Approach
 
-`agents/s07_task_system.py` writes durable state into a dedicated runtime folder so the task plane survives chat churn.
+`TaskStore` writes under `.lrcc/tasks/<task_list_id>/` (default `default`), one JSON per task: `id`, `subject`, `status`, `owner`, `blocked_by`, timestamps, etc. On `task_update` to completed, `_clear_dependency` removes that id from other tasks’ `blocked_by`.
 
-## What Is Intentionally Simplified
+## Tools
 
-The teaching version uses a compact file-backed store. The point is durability and separation of concerns, not production-grade task orchestration.
+`task_create`, `task_get`, `task_list`, `task_update`. IDs use a high-water mark file to avoid collisions with deleted files.
 
-## Try It
+## Changes vs s06
 
-- Run `python agents/s07_task_system.py` if the filename matches the chapter script, or open the file directly if you are reading first.
-- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.
-- Compare the visible runtime state before and after the tool call or control-flow change.
+| Piece | s06 | s07 |
+|-------|-----|-----|
+| Work units | none | on-disk JSON tasks |
+| Dependencies | none | `blocked_by` lists |
 
-## Bridge To The Next Chapter
+## Try it
 
-With durable state in place, the runtime can start owning work that continues even when the foreground loop moves on.
+```sh
+cd learn-real-claude-code
+python agents/s07_task_system.py
+```
+
+1. `Create three tasks A,B,C; make B depend on A, C depend on B.`
+2. `Complete A and list — B should be unblocked.`

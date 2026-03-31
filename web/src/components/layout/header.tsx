@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations, useLocale } from "@/lib/i18n";
-import { Menu, X, Sun, Moon } from "lucide-react";
+import { Github, Menu, X, Sun, Moon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+
+/** Same pattern as learn-claude-code: inline repo URL in header (no shared constant). */
+const GITHUB_REPO_HREF = "https://github.com/xilangzhou/learn-real-claude-code";
 
 const NAV_ITEMS = [
   { key: "timeline", href: "/timeline" },
@@ -51,7 +54,7 @@ export function Header() {
           Learn Real Claude Code
         </Link>
 
-        {/* Desktop nav */}
+        {/* Desktop nav — structure aligned with examples/learn-claude-code/web */}
         <nav className="hidden items-center gap-6 md:flex">
           {NAV_ITEMS.map((item) => (
             <Link
@@ -68,7 +71,6 @@ export function Header() {
             </Link>
           ))}
 
-          {/* Locale switcher */}
           <div className="flex items-center gap-1 rounded-lg border border-[var(--color-border)] p-0.5">
             {LOCALES.map((l) => (
               <button
@@ -93,9 +95,17 @@ export function Header() {
             {mounted ? (dark ? <Sun size={16} /> : <Moon size={16} />) : <span className="w-4 h-4 inline-block" />}
           </button>
 
+          <a
+            href={GITHUB_REPO_HREF}
+            target="_blank"
+            rel="noopener"
+            className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-white"
+            aria-label={t("github")}
+          >
+            <Github size={18} />
+          </a>
         </nav>
 
-        {/* Mobile hamburger */}
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
           className="flex min-h-[44px] min-w-[44px] items-center justify-center md:hidden"
@@ -104,7 +114,6 @@ export function Header() {
         </button>
       </div>
 
-      {/* Mobile menu */}
       {mobileOpen && (
         <div className="border-t border-[var(--color-border)] bg-[var(--color-bg)] p-4 md:hidden">
           {NAV_ITEMS.map((item) => (
@@ -141,6 +150,15 @@ export function Header() {
               >
                 {mounted ? (dark ? <Sun size={18} /> : <Moon size={18} />) : <span className="w-[18px] h-[18px] inline-block" />}
               </button>
+              <a
+                href={GITHUB_REPO_HREF}
+                target="_blank"
+                rel="noopener"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-white"
+                aria-label={t("github")}
+              >
+                <Github size={18} />
+              </a>
             </div>
           </div>
         </div>

@@ -1,30 +1,41 @@
 # s11: Self-Organizing Workers
 
-## Why This Chapter Exists
+`s01 > s02 > s03 > s04 > s05 > s06 | s07 > s08 > s09 > s10 > [ s11 ] s12`
 
-A team still feels scripted if every action comes from the lead. Useful autonomy appears when workers can notice, claim, and continue work on their own.
+> *Idle is fine; when there is work, claim it.* Task board + inbox + `before_request` injection.
+>
+> **Harness layer**: autonomy entry — the harness feeds hints; the model decides whether to act.
 
-## Core Mechanism
+## Problem
 
-- maintain a shared task board
-- give each worker an inbox
-- let workers poll during idle periods
-- allow local policies such as auto-claiming open work
+If every action needs a human instruction, multi-agent is just scripts with different voices. You want **unclaimed tasks** and **new mail** to show up when the model “opens its eyes”.
 
-## Mapping To The Python Code
+## Approach
 
-`agents/s11_autonomous_agents.py` keeps autonomy legible by grounding it in shared state and small rules instead of mystery.
+- **TaskBoard**: `.lrcc/autonomy/tasks/*.json`; `unclaimed()` picks `pending`, no `owner`, no `blocked_by`.
+- **Inbox**: `.lrcc/autonomy/inbox/*.jsonl`, same pattern as mailboxes.
+- **`before_request`**: inject unread inbox first; else if there is an unclaimed task, inject `<auto-claim-opportunity>` for the first one.
+- Tools: `task_create`, `task_list`, `claim_task`, `send_message`, `idle` (“pause this turn for the harness”).
 
-## What Is Intentionally Simplified
+## Behavior
 
-The local policies here are intentionally simple. The lesson is emergence from runtime structure, not optimal scheduling.
+Autonomy is not magic — it is **extra structured user messages before each request**. `claim_task` writes owner + status.
 
-## Try It
+For session timing and `idle-timeout` behavior, see `s11_autonomous_agents.py` as source of truth.
 
-- Run `python agents/s11_autonomous_agents.py` if the filename matches the chapter script, or open the file directly if you are reading first.
-- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.
-- Compare the visible runtime state before and after the tool call or control-flow change.
+## Changes vs s10
 
-## Bridge To The Next Chapter
+| Piece | s10 | s11 |
+|-------|-----|-----|
+| Task source | no shared board | `.lrcc/autonomy/tasks` |
+| Drive | tools only | + `before_request` opportunities |
 
-Once workers can self-organize, the last missing piece is to isolate their execution surfaces so concurrent work does not collide.
+## Try it
+
+```sh
+cd learn-real-claude-code
+python agents/s11_autonomous_agents.py
+```
+
+1. Create several `task_create` items and watch for `claim_task` after injection.
+2. `send_message` to `lead` and see whether the next turn includes `<inbox>`.

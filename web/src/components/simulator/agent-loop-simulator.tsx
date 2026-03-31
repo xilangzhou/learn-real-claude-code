@@ -29,6 +29,7 @@ interface AgentLoopSimulatorProps {
 
 export function AgentLoopSimulator({ version }: AgentLoopSimulatorProps) {
   const t = useTranslations("version");
+  const tSimMessage = useTranslations("sim_message");
   const [scenario, setScenario] = useState<Scenario | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -81,7 +82,7 @@ export function AgentLoopSimulator({ version }: AgentLoopSimulatorProps) {
         >
           {sim.visibleSteps.length === 0 && (
             <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-text-secondary)]">
-              Press Play or Step to begin
+              {tSimMessage("start_hint")}
             </div>
           )}
           <AnimatePresence mode="popLayout">

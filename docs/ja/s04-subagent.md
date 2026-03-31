@@ -1,30 +1,43 @@
-# s04: Delegation Modes
+# s04: Delegation Modes（委任モード）
 
-## なぜこの章が必要か
+`s01 > s02 > s03 > [ s04 ] s05 > s06 | s07 > s08 > s09 > s10 > s11 > s12`
 
-古い教材では全ての subagent を clean-room child とみなしがちですが、それでは現代的な委任挙動を説明しきれません。
+> *子タスクは別ループ、親には要約だけ —— でもクリーンな履歴と文脈付き fork は別物。*
+>
+> **Harness 層**：委任 —— 子ループにどの履歴を渡すか。
 
-## コアメカニズム
+## 問題
 
-- fresh delegation はクリーンな履歴から始まる
-- fork delegation は限定文脈を引き継ぐ
-- どちらも焦点化された子ループを走らせる
-- 親には通常、全文ではなく要約が戻る
+本線にツール出力が積もると、「調べて」と言うだけでノイズごと流れ込む。要約が欲しくて全文 transcript は要らない。
 
-## Python コードへの対応
+文脈を継続したいときは **fresh** が薄すぎる。**fork** が合う。
 
-`agents/s04_subagent.py` は同じ delegate ツールで二つのモードを表し、差を一つのファイルで見えるようにしています。
+## 方針
 
-## 意図的に単純化している点
+`delegate` に `mode` を付ける。
 
-実システムにはもっと多くの worker 型と細かな文脈継承規則がありますが、教材版では戦略的差分だけを残します。
+- **fresh**：子は単一 user メッセージから。履歴なし。
+- **fork**：`summarize_messages(parent_messages, keep_last=8)` を `<inherited-context>` に包んで指令と合わせる。
 
-## 試してみること
+子も同じ `run_loop()`。registry は `base_tools` のみで **`delegate` なし**（再帰委任を防ぐ）。
 
-- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。
-- この章の新機構を実際に使わないと進まないタスクを与える。
-- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。
+## 配線
 
-## 次章へのつながり
+`DelegationRunner` が各 `run_session` で親 `messages` を渡し、handler から `run_worker(..., parent_messages=...)`。
 
-worker をオンデマンドで作れるなら、次の問いはドメイン知識もオンデマンドで読めるかです。
+## s03 からの差分
+
+| 要素 | s03 | s04 |
+|------|-----|-----|
+| 子タスク | なし | `delegate` + 子 `run_loop` |
+| 文脈 | 一本 | 親／子で分離 |
+
+## 試す
+
+```sh
+cd learn-real-claude-code
+python agents/s04_subagent.py
+```
+
+1. `Delegate in fresh mode: list files in agents/ and return a one-line summary.`
+2. `Fork mode: continue from our thread — check whether s04 uses summarize_messages.`

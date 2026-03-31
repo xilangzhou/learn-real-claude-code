@@ -1,30 +1,40 @@
 # s09: Team Mailboxes
 
-## Why This Chapter Exists
+`s01 > s02 > s03 > s04 > s05 > s06 | s07 > s08 > [ s09 ] s10 > s11 > s12`
 
-Adding more agents is not enough. Collaboration only becomes teachable when messages, identity, and routing are explicit.
+> *More than one worker — you need mailboxes first.* Identity + JSONL inboxes beat a shared implicit mind.
+>
+> **Harness layer**: collaboration surface — lead and teammates each run their own loop.
 
-## Core Mechanism
+## Problem
 
-- give workers stable names
-- route communication through mailboxes
-- let each worker keep its own loop and state
-- treat message passing as the collaboration surface
+s04 subagents are one-shot; s08 background is only shell. **Multi-turn collaboration** needs stable identities and addressable inboxes.
 
-## Mapping To The Python Code
+## Approach
 
-`agents/s09_agent_teams.py` introduces a mailbox bus and team manager rather than pretending workers share one hidden mind.
+- **MailboxBus**: `.lrcc/team/inbox/<name>.jsonl`, append on write, **drain** on read.
+- **TeamManager**: `.lrcc/team/config.json` roster + status; `team_spawn` starts a teammate thread running `run_loop`, with `before_request` injecting unread inbox before each model call.
 
-## What Is Intentionally Simplified
+Lead tools: `team_spawn`, `send_message` (to a teammate), `read_inbox` (lead’s inbox), `team_list`.
 
-The message transport is intentionally plain. The teaching target is explicit collaboration, not transport sophistication.
+## Behavior
 
-## Try It
+Teammate registry = base tools + `send_message` to others. Lead `send_message` always sends from `"lead"`.
 
-- Run `python agents/s09_agent_teams.py` if the filename matches the chapter script, or open the file directly if you are reading first.
-- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.
-- Compare the visible runtime state before and after the tool call or control-flow change.
+## Changes vs s08
 
-## Bridge To The Next Chapter
+| Piece | s08 | s09 |
+|-------|-----|-----|
+| Concurrency | background shell only | multiple threads, each an agent loop |
+| Comms | none | JSONL mailbox |
 
-Once messages exist, the runtime can start distinguishing ordinary chat from typed coordination requests.
+## Try it
+
+```sh
+cd learn-real-claude-code
+python agents/s09_agent_teams.py
+```
+
+1. `Spawn a teammate "alice" with a short coding prompt, then send_message to alice.`
+2. `read_inbox` to see if the lead got a reply (depends on the model sending back).
+3. `team_list` for status.

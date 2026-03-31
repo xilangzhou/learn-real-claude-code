@@ -1,30 +1,41 @@
 # s10: Team Protocols
 
-## Why This Chapter Exists
+`s01 > s02 > s03 > s04 > s05 > s06 | s07 > s08 > s09 > [ s10 ] s11 > s12`
 
-Not every message in a team is just text. Some messages open a lifecycle that the runtime must remember and match later.
+> *If you need a handshake, plain chat is not enough.* `request_id` + pending / approved / rejected.
+>
+> **Harness layer**: protocol state — in-memory tables under `ProtocolState` (directory `.lrcc/protocols/` exists for storage layout; this lesson uses the in-memory maps).
 
-## Core Mechanism
+## Problem
 
-- add request ids to important coordination messages
-- track pending, approved, and rejected states
-- model plan and shutdown as typed requests
-- let the runtime poll and resolve protocol state
+“Please shut down” in a free-form message is ambiguous: who is waiting, was it approved? Shutdown and plan changes need **correlatable request IDs**.
 
-## Mapping To The Python Code
+## Approach
 
-`agents/s10_team_protocols.py` keeps the lesson grounded by showing that a protocol is just message plus lifecycle state.
+`ProtocolState` holds `shutdown_requests` and `plan_requests` keyed by short `request_id`. Tools:
 
-## What Is Intentionally Simplified
+- `request_shutdown` / `respond_shutdown`
+- `submit_plan` / `review_plan`
+- `protocol_state` to dump both tables
 
-The teaching version contains only a small set of protocols. The key lesson is that typed coordination needs memory, not just better wording.
+`resolve()` sets `approved` or `rejected` and optional `feedback`.
 
-## Try It
+This version does **not** route protocol over custom mailbox message types; state lives in `ProtocolState`. The teaching point is an **ID’d state machine**, not a full message bus.
 
-- Run `python agents/s10_team_protocols.py` if the filename matches the chapter script, or open the file directly if you are reading first.
-- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.
-- Compare the visible runtime state before and after the tool call or control-flow change.
+## Changes vs s09
 
-## Bridge To The Next Chapter
+| Piece | s09 | s10 |
+|-------|-----|-----|
+| Coordination | free text | structured shutdown / plan |
+| Tracking | none | `request_id` + status fields |
 
-If the runtime can coordinate workers explicitly, it can also let them self-coordinate around shared state.
+## Try it
+
+```sh
+cd learn-real-claude-code
+python agents/s10_team_protocols.py
+```
+
+1. `request_shutdown` for a name, then `respond_shutdown` approve or reject.
+2. `submit_plan` then `review_plan` for one plan.
+3. `protocol_state` to inspect both tables.

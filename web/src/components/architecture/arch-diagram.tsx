@@ -5,22 +5,22 @@ import { cn } from "@/lib/utils";
 import { LAYERS } from "@/lib/constants";
 import versionsData from "@/data/generated/versions.json";
 
+/** Same pattern as examples/learn-claude-code: inline English blurbs for extracted class names. */
 const CLASS_DESCRIPTIONS: Record<string, string> = {
   TodoManager: "Session checklist with a single active item",
-  DelegateRuntime: "Fresh and forked delegation with summary return",
-  Skill: "Discoverable skill metadata and activation rules",
-  SkillLoader: "Runtime skill discovery and conditional loading",
-  ContextManager: "Budgeting, rolling summaries, and manual compact",
-  TaskStore: "Durable task storage outside the chat transcript",
+  Skill: "Skill metadata and activation rules from SKILL.md",
+  SkillLoader: "Multi-directory scan and conditional activation",
+  ContextManager: "Result budget, micro-summaries, threshold and manual compact",
+  TaskStore: "Durable task JSON outside the transcript",
   BackgroundTask: "Tracked background execution unit",
-  BackgroundManager: "Background handles, polling, and notifications",
-  MailboxBus: "Explicit message transport for named workers",
-  TeamManager: "Named worker lifecycle and mailbox routing",
-  ProtocolState: "Typed coordination requests with lifecycle tracking",
-  TaskBoard: "Shared board for claimable work",
-  Inbox: "Per-worker message queue for autonomous coordination",
-  EventLog: "Lifecycle audit trail for isolated work",
-  WorktreeStore: "Task-bound isolated workspaces",
+  BackgroundManager: "Background threads + notification drain before each LLM call",
+  MailboxBus: "Append-only JSONL inboxes per worker",
+  TeamManager: "Team roster + spawn teammate loops",
+  ProtocolState: "Shutdown and plan requests with request_id lifecycle",
+  TaskBoard: "Shared board for claimable or autonomous tasks",
+  Inbox: "Per-worker queue for autonomous coordination",
+  EventLog: "Lifecycle events for isolation lanes",
+  WorktreeStore: "Task-bound git worktrees or directory lanes",
 };
 
 interface ArchDiagramProps {

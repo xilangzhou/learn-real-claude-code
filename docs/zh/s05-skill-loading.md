@@ -1,30 +1,42 @@
-# s05: Skill Discovery
+# s05: Skill Discovery (Skill 发现与加载)
 
-## 为什么需要这一章
+`s01 > s02 > s03 > s04 > [ s05 ] s06 | s07 > s08 > s09 > s10 > s11 > s12`
 
-把所有领域指令都塞进 system prompt，会让上下文既沉重又失焦。
+> *「目录里全列出来太蠢；用到再加载」* —— 先发现，再激活，最后读正文。
+>
+> **Harness 层**：按需知识 —— 把重文本从常驻 system 里挪出去。
 
-## 核心机制
+## 问题
 
-- 把 skill 看成“元数据 + 指令正文”
-- 从目录和条件中发现可用技能
-- 只为当前任务激活相关 skill
-- 晚注入正文，而不是永久占着上下文
+把每个领域的长文都塞进 system prompt，token 贵且干扰注意力。模型其实只需要知道「有哪些 skill」和「什么时候该读哪篇」。
 
-## 这一章如何映射到 Python 代码
+## 解决方案
 
-`agents/s05_skill_loading.py` 的重点放在发现、筛选和激活，而不是花哨的 prompt 模板技巧。
+`SkillLoader` 扫描 `skills/` 与 `.claude/skills/` 下的 `SKILL.md`，解析 YAML frontmatter（`name`、`description`、`paths`）。
 
-## 这里刻意简化了什么
+- 没有 `paths` 的 skill：默认进 **active**。
+- 带 `paths` 的：只有当你用工具声明「碰过这些路径」时才 **activate**（子串匹配）。
 
-完整产品可能从多源加载，并使用更复杂的匹配规则；教学版只保留足够解释系统存在意义的结构。
+两个工具：`activate_skills(paths)`、`load_skill(name)`。只有 **已激活** 的 skill 才能 `load` 出完整正文。
 
-## 建议你自己试一试
+## 工作原理
 
-- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。
-- 给模型一个必须用到本章机制的任务，而不是只问概念定义。
-- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。
+系统提示里只放 `list_active()` 的短列表；正文通过 `tool_result` 以 `<skill name="..." source="...">` 包进来。
 
-## 它如何连接到下一章
+## 相对 s04 的变更
 
-按需知识加载能减压，但如果 harness 不能管理上下文窗口，长会话还是会失败。
+| 组件 | s04 | s05 |
+|------|-----|-----|
+| 知识 | 无结构化 | Skill 元数据 + 正文 + 条件激活 |
+| 工具 | 基础 + delegate | + `activate_skills`、`load_skill` |
+
+## 试一试
+
+```sh
+cd learn-real-claude-code
+python agents/s05_skill_loading.py
+```
+
+1. `What skills are active?`
+2. `Load one active skill by name and summarize its first section.`
+3. 编辑某个 `paths` 里提到的文件后，调用 `activate_skills` 看是否多激活 skill。

@@ -1,30 +1,41 @@
-# s11: Self-Organizing Workers
+# s11: Self-Organizing Workers（自己組織化ワーカー）
 
-## なぜこの章が必要か
+`s01 > s02 > s03 > s04 > s05 > s06 | s07 > s08 > s09 > s10 > [ s11 ] s12`
 
-チーム内の全ての動きが lead の指示から来るなら、まだ scripted です。役に立つ自律性は、worker が自分で見つけ、引き受け、続けられるときに現れます。
+> *暇なら待て；仕事があれば取れ。* タスクボード + inbox + `before_request` 注入。
+>
+> **Harness 層**：自律の入口 —— harness が手がかりを差し出し、動くかはモデル。
 
-## コアメカニズム
+## 問題
 
-- 共有 task board を持つ
-- 各 worker に inbox を与える
-- idle 期間に polling させる
-- open work の auto-claim のような local policy を許す
+全部人間が指示しないと、マルチエージェントは別のスクリプトに過ぎない。**未认领のタスク** と **新着メール** を、モデルが最初に見るところに出したい。
 
-## Python コードへの対応
+## 方針
 
-`agents/s11_autonomous_agents.py` は自律性を神秘化せず、共有状態と小さな規則に落とします。
+- **TaskBoard**：`.lrcc/autonomy/tasks/*.json`。`unclaimed()` は `pending` かつ `owner` なし、`blocked_by` なし。
+- **Inbox**：`.lrcc/autonomy/inbox/*.jsonl`。メールボックスと同様。
+- **`before_request`**：未読 inbox を優先注入。なければ未认领タスクがあれば先頭へ `<auto-claim-opportunity>`。
+- ツール：`task_create`、`task_list`、`claim_task`、`send_message`、`idle`（「このターンは一旦.harness に任せる」）。
 
-## 意図的に単純化している点
+## 挙動
 
-ここでの local policy は意図的に単純です。焦点は最適スケジューリングではなく、ランタイム構造からの創発です。
+自律は魔法ではなく、**各リクエスト前に増える構造化メッセージ** である。`claim_task` で owner と状態を書く。
 
-## 試してみること
+セッション時間や `idle-timeout` の挙動は `s11_autonomous_agents.py` を正とする。
 
-- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。
-- この章の新機構を実際に使わないと進まないタスクを与える。
-- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。
+## s10 からの差分
 
-## 次章へのつながり
+| 要素 | s10 | s11 |
+|------|-----|-----|
+| タスク源 | 共有ボードなし | `.lrcc/autonomy/tasks` |
+| 駆動 | ツールのみ | + `before_request` で機会を注入 |
 
-workers が自己組織化できるようになったら、最後に必要なのは実行面を分離して並行作業の衝突を避けることです。
+## 試す
+
+```sh
+cd learn-real-claude-code
+python agents/s11_autonomous_agents.py
+```
+
+1. `task_create` を複数作り、注入後に `claim_task` するか観察。
+2. `send_message` で `lead` へ送り、次ターンに `<inbox>` が入るか見る。

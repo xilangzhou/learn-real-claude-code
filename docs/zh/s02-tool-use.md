@@ -1,30 +1,49 @@
-# s02: Tool Protocol
+# s02: Tool Protocol (工具协议)
 
-## 为什么需要这一章
+`s01 > [ s02 ] s03 > s04 > s05 > s06 | s07 > s08 > s09 > s10 > s11 > s12`
 
-只有一个动作面的循环虽然真实，但仍然过于粗糙。下一步要做的是把能力显式化、结构化。
+> *「加能力 = 加 Tool，不是改循环」* —— 名字 + schema + handler，统一进 registry。
+>
+> **Harness 层**：工具分发 —— 扩展模型能安全触达的边界。
 
-## 核心机制
+## 问题
 
-- 把工具定义成具名协议对象
-- 给每个工具一个输入 schema
-- 统一注册到 registry
-- 让循环按工具名做分发
+只靠 bash，读写文件都要拼 shell，路径和引号一乱就容易出错。专用读写工具可以在 **handler 里** 做沙箱和截断，比每次靠模型自觉更稳。
 
-## 这一章如何映射到 Python 代码
+## 解决方案
 
-`agents/s02_tool_use.py` 完全不改循环，只把单一 bash 动作面换成结构化工具注册表。
+```
++--------+      +-------+      +------------------+
+|  User  | ---> |  LLM  | ---> | ToolRegistry     |
++--------+      +---+---+      |  .call(name,**)  |
+                    ^          +--------+---------+
+                    |                   |
+                    +---- tool_result ---+
+```
 
-## 这里刻意简化了什么
+`run_loop()` 不变；变的是 `ToolRegistry` 里注册了 `bash`、`read_file`、`write_file`、`edit_file`（见 `base_tools()`）。
 
-完整产品级工具层还要处理审批、渲染、富结果和遥测，这里只保留 name、schema 和 handler。
+## 工作原理
 
-## 建议你自己试一试
+`base_tools()` 为每个工具提供 `input_schema` 和闭包 handler（传入 `workdir`）。`safe_path()` 保证路径不逃出工作区；读写在 `_shared.py` 里统一截断长度。
 
-- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。
-- 给模型一个必须用到本章机制的任务，而不是只问概念定义。
-- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。
+`s02_tool_use.py` 的系统提示会引导：文件操作用专用工具，只有需要 shell 语义时才用 bash。
 
-## 它如何连接到下一章
+## 相对 s01 的变更
 
-当工具层稳定之后，agent 就可以开始维护关于自身工作的可见状态。
+| 组件 | s01 | s02 |
+|------|-----|-----|
+| 工具数 | 1 | 4（bash + read/write/edit） |
+| 分发 | 隐式只有 bash | `ToolRegistry.call` 按名调用 |
+| 路径 | 无沙箱 | `safe_path` |
+
+## 试一试
+
+```sh
+cd learn-real-claude-code
+python agents/s02_tool_use.py
+```
+
+1. `Read README.md (first 40 lines).`
+2. `Add a tiny note.txt with today's date.`
+3. `Edit note.txt to append one line.`

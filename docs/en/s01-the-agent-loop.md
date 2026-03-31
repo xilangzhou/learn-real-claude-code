@@ -1,30 +1,51 @@
 # s01: The Agent Loop
 
-## Why This Chapter Exists
+`[ s01 ] s02 > s03 > s04 > s05 > s06 | s07 > s08 > s09 > s10 > s11 > s12`
 
-A coding agent does not start as a planner, a team, or a workflow graph. It starts as a loop that can observe and act.
+> *One loop plus one tool surface is enough to behave like an agent — get the closed loop working before planners, memory, or multi-agent.*
+>
+> **Harness layer**: the loop — the smallest wiring between the model and the real environment.
 
-## Core Mechanism
+## Problem
 
-- append the user message to history
-- call the model with tools
-- if the model asks for a tool, execute it and append the result
-- if not, return the final answer
+The model cannot touch disk or the shell by itself. Without a loop, you paste every tool result back by hand — *you* are the loop.
 
-## Mapping To The Python Code
+## Shape of the solution
 
-`agents/s01_agent_loop.py` keeps only the visible teaching shell while `agents/_shared.py` carries the reusable loop helper.
+```
++--------+      +-------+      +---------+
+|  User  | ---> |  LLM  | ---> |  Tool   |
+| prompt |      |       |      | execute |
++--------+      +---+---+      +----+----+
+                    ^                |
+                    |   tool_result  |
+                    +----------------+
+        exit when stop_reason != tool_use
+```
 
-## What Is Intentionally Simplified
+## How it works in this repo
 
-The real system contains streaming, retries, permissions, token budgeting, and interruption logic. This chapter intentionally ignores all of that so the invariant stays visible.
+The loop lives in `agents/_shared.py` as `run_loop()`: accumulate `messages`, call the API with `registry.definitions()` each turn; if there is no `tool_use` in the response, return; otherwise call `registry.call()` for each block and append `tool_result` as the next user message.
 
-## Try It
+`s01_agent_loop.py` registers **only bash** (`ToolRegistry([base_tools(WORKDIR, include_write=False)[0]])`) on purpose. The system prompt says: act first, explain after.
 
-- Run `python agents/s01_the_agent_loop.py` if the filename matches the chapter script, or open the file directly if you are reading first.
-- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.
-- Compare the visible runtime state before and after the tool call or control-flow change.
+## What changed vs a bare model
 
-## Bridge To The Next Chapter
+| Piece | Before | After (s01) |
+|-------|--------|-------------|
+| Control flow | none | `while` + `max_turns` cap |
+| Tools | none | `bash` only |
+| Messages | none | growing assistant / user (incl. tool_result) |
 
-Once the loop exists, the next question is not how to rewrite it, but how to add new capabilities without touching it.
+## Try it
+
+```sh
+cd learn-real-claude-code
+python agents/s01_agent_loop.py
+```
+
+Example prompts (English usually works best):
+
+1. `List the top-level directories here and say what this repo is for.`
+2. `Create a small hello.py and show its contents with cat.`
+3. `What git branch are we on?`

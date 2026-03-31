@@ -1,30 +1,51 @@
-# s01: The Agent Loop
+# s01: The Agent Loop（エージェントループ）
 
-## なぜこの章が必要か
+`[ s01 ] s02 > s03 > s04 > s05 > s06 | s07 > s08 > s09 > s10 > s11 > s12`
 
-コーディングエージェントの出発点は、プランナーでもチームでもワークフローグラフでもなく、観測して行動できるループです。
+> *ループとツール面が一つあれば、まずはエージェントとして回せる —— プランナや記憶、マルチエージェントの前に閉ループを通す。*
+>
+> **Harness 層**：ループ —— モデルと実環境をつなぐ最小配線。
 
-## コアメカニズム
+## 問題
 
-- ユーザーメッセージを履歴に追加する
-- ツール定義付きでモデルを呼ぶ
-- ツール要求が来たら実行して結果を戻す
-- そうでなければ最終回答を返す
+モデル単体ではディスクもシェルも触れない。ループがなければ、ツール結果を毎回手で貼り戻すことになる。つまり **人間がループ** になる。
 
-## Python コードへの対応
+## 解決の形
 
-`agents/s01_agent_loop.py` は見せるべき最小部分だけを残し、再利用部分は `agents/_shared.py` に置いています。
+```
++--------+      +-------+      +---------+
+|  User  | ---> |  LLM  | ---> |  Tool   |
+| prompt |      |       |      | execute |
++--------+      +---+---+      +----+----+
+                    ^                |
+                    |   tool_result  |
+                    +----------------+
+        stop_reason != tool_use で終了
+```
 
-## 意図的に単純化している点
+## このリポジトリでの動き
 
-実システムには streaming、retry、permission、token budget、interrupt 回復もありますが、この章ではループ不変条件を見せるために意図的に省いています。
+ループは `agents/_shared.py` の `run_loop()` に集約される。`messages` を積み、`registry.definitions()` 付きで API を呼ぶ。応答に `tool_use` がなければ return。あれば各ブロックで `registry.call()` し、次の user メッセージとして `tool_result` を足す。
 
-## 試してみること
+`s01_agent_loop.py` は意図的に **bash だけ** を登録する（`ToolRegistry([base_tools(WORKDIR, include_write=False)[0]])`）。システムプロンプトは「先に動いてから説明」。
 
-- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。
-- この章の新機構を実際に使わないと進まないタスクを与える。
-- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。
+## 裸のモデルからの変化
 
-## 次章へのつながり
+| 要素 | 以前 | s01 以降 |
+|------|------|----------|
+| 制御 | なし | `while` + `max_turns` 上限 |
+| ツール | なし | `bash` のみ |
+| メッセージ | なし | assistant / user（tool_result 含む）を蓄積 |
 
-ループが成立した次に問うべきは、どう書き換えるかではなく、どう触らずに能力を増やすかです。
+## 試す
+
+```sh
+cd learn-real-claude-code
+python agents/s01_agent_loop.py
+```
+
+プロンプト例（英語の方が安定しやすい）：
+
+1. `List the top-level directories here and say what this repo is for.`
+2. `Create a small hello.py and show its contents with cat.`
+3. `What git branch are we on?`

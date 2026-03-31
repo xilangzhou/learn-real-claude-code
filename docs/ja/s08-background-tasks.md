@@ -1,30 +1,38 @@
-# s08: Background Runtime
+# s08: Background Runtime（バックグラウンド）
 
-## なぜこの章が必要か
+`s01 > s02 > s03 > s04 > s05 > s06 | s07 > [ s08 ] s09 > s10 > s11 > s12`
 
-いくつかの操作は遅すぎて、前景の推論ループにそのまま埋め込めません。
+> *遅い処理でメインループを塞がない —— スレッドで走らせ、結果を会話に戻す。*
+>
+> **Harness 層**：バックグラウンド —— ライフサイクルは harness、モデルは命令だけ。
 
-## コアメカニズム
+## 問題
 
-- 長い仕事を背景ランタイムへ逃がす
-- すぐに安定ハンドルを返す
-- 明示的な polling を許す
-- 完了通知を前景会話へ戻す
+`pytest` や依存インストールは長い。同期実行だとモデルは待つだけで体験が悪い。
 
-## Python コードへの対応
+## 方針
 
-`agents/s08_background_tasks.py` は handle、polling、通知の再注入という核心だけに集中します。
+`BackgroundManager.run()` が daemon スレッドで `subprocess` を起動し、短い uuid を task id に。完了時はスレッド安全キューへ。**毎回の LLM リクエスト前**に `before_request` で `drain_notifications()` し、あれば user メッセージ `<task-notifications>...</task-notifications>` を追加。
 
-## 意図的に単純化している点
+`background_check` で一つまたは一覧を確認。
 
-教材版ランタイムは意図的に小さく、背景作業に必要なのは単なる thread ではなく runtime semantics だと示します。
+## 挙動
 
-## 試してみること
+メインのスケジュールループは単一スレッド。並列は子プロセスと結果集約。300 秒超は timeout。
 
-- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。
-- この章の新機構を実際に使わないと進まないタスクを与える。
-- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。
+## s07 からの差分
 
-## 次章へのつながり
+| 要素 | s07 | s08 |
+|------|-----|-----|
+| 実行 | 同期 | + バックグラウンドシェル + 通知 |
+| ツール | タスク4種 | + `background_run`、`background_check` |
 
-ランタイムが複数の作業単位を持てるなら、次は複数の名前付き worker が協調する段階です。
+## 試す
+
+```sh
+cd learn-real-claude-code
+python agents/s08_background_tasks.py
+```
+
+1. `Run sleep 3 && echo done in background, then do something else until notification appears.`
+2. `List background tasks with background_check.`
