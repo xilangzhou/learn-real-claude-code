@@ -12,8 +12,13 @@
       "permanent": true
     },
     {
+      "source": "/en",
+      "destination": "/en/",
+      "permanent": false
+    },
+    {
       "source": "/",
-      "destination": "/en",
+      "destination": "/en/",
       "permanent": false
     }
   ]
