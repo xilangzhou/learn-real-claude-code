@@ -1,0 +1,41 @@
+{
+  "version": "s03",
+  "title": "Session State",
+  "description": "Visible session planning helps multi-step work stay coherent.",
+  "steps": [
+    {
+      "type": "user_message",
+      "content": "Add a small CLI script and a short usage example in the docs.",
+      "annotation": "This is small enough for a checklist but large enough to benefit from planning."
+    },
+    {
+      "type": "tool_call",
+      "content": "{\"todos\":[{\"content\":\"Create the CLI entrypoint\",\"status\":\"in_progress\",\"active_form\":\"creating the script\"},{\"content\":\"Document the usage example\",\"status\":\"pending\"}]}",
+      "toolName": "todo_write",
+      "annotation": "The model externalizes short-horizon state before editing."
+    },
+    {
+      "type": "tool_result",
+      "content": "[>] Create the CLI entrypoint <- creating the script\n[ ] Document the usage example\n\n(0/2 completed)",
+      "toolName": "todo_write",
+      "annotation": "The checklist is now visible to both the user and the model."
+    },
+    {
+      "type": "tool_call",
+      "content": "{\"path\":\"tools/demo_cli.py\",\"content\":\"print(\"hello from demo cli\")\n\"}",
+      "toolName": "write_file",
+      "annotation": "The first active item becomes concrete work."
+    },
+    {
+      "type": "tool_result",
+      "content": "Wrote 28 bytes",
+      "toolName": "write_file",
+      "annotation": "Execution proceeds while the checklist remains the guide."
+    },
+    {
+      "type": "assistant_text",
+      "content": "The script is in place, and the remaining documentation step is still visible in session state.",
+      "annotation": "Session state tracks the current line of work without pretending to be durable project storage."
+    }
+  ]
+}

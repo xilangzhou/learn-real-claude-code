@@ -1,0 +1,33 @@
+{
+  "version": "s03",
+  "decisions": [
+    {
+      "id": "session-checklist",
+      "title": "Use Session State For Short-Horizon Planning",
+      "description": "The todo list in this chapter is intentionally lightweight. It helps the model keep one active thread of work without pretending to be the project-wide source of truth.",
+      "alternatives": "Jumping straight to persistent tasks would hide the useful distinction between an ephemeral checklist and a durable task runtime.",
+      "zh": {
+        "title": "用会话状态承载短周期规划",
+        "description": "这里的 todo 刻意保持轻量，只用于帮助模型维持当前工作线程，而不是冒充项目级事实来源。"
+      },
+      "ja": {
+        "title": "短期計画にはセッション状態を使う",
+        "description": "この章の todo は意図的に軽量で、現在の作業線を保つためのものであり、プロジェクト全体の真実の源を名乗らせません。"
+      }
+    },
+    {
+      "id": "single-focus",
+      "title": "Allow Only One In-Progress Item",
+      "description": "A single active item forces the model to expose what it is doing right now. This avoids pseudo-multitasking, where several half-progressed items accumulate and state gets muddled.",
+      "alternatives": "Multiple active items look flexible, but in practice they make the plan less legible and the execution less reliable.",
+      "zh": {
+        "title": "同一时刻只允许一个进行中项目",
+        "description": "只允许一个活动项，可以强制模型明确暴露“现在正在做什么”，避免伪多任务带来的状态混乱。"
+      },
+      "ja": {
+        "title": "同時に進行中は一項目だけ",
+        "description": "進行中を一つに制限することで、モデルが今何をしているかを明示させ、擬似的なマルチタスクによる状態の混乱を避けます。"
+      }
+    }
+  ]
+}

@@ -1,0 +1,653 @@
+{
+  "versions": [
+    {
+      "id": "s01",
+      "filename": "s01_agent_loop.py",
+      "title": "The Agent Loop",
+      "subtitle": "Minimal Harness Core",
+      "loc": 29,
+      "tools": [
+        "bash"
+      ],
+      "newTools": [
+        "bash"
+      ],
+      "coreAddition": "Single-loop execution with one tool",
+      "keyInsight": "The coding agent starts as a loop, not a workflow graph",
+      "classes": [],
+      "functions": [
+        {
+          "name": "run_session",
+          "signature": "def run_session(messages: list[dict[str, object]])",
+          "startLine": 33
+        }
+      ],
+      "layer": "tools",
+      "source": "#!/usr/bin/env python3\n# Harness: the agent loop -- the smallest useful coding agent.\n\"\"\"\ns01_agent_loop.py - The Agent Loop\n\nThe first chapter stays intentionally tiny:\n\n    user -> model -> tool_use? -> execute -> tool_result -> loop\n\nThe important correction is conceptual, not structural:\nthe loop is still the heart of the harness, but the real product wraps it in\nmany surrounding systems. We start with the irreducible core.\n\"\"\"\n\nfrom __future__ import annotations\n\nfrom pathlib import Path\n\nfrom agents._shared import ToolRegistry, base_tools, get_model, make_client, repl, run_loop\n\nWORKDIR = Path.cwd()\nMODEL = get_model()\nCLIENT = make_client()\nSYSTEM = (\n    f\"You are a coding agent at {WORKDIR}. \"\n    \"Use bash to inspect the workspace and act before you explain.\"\n)\n\n\nREGISTRY = ToolRegistry([base_tools(WORKDIR, include_write=False)[0]])\n\n\ndef run_session(messages: list[dict[str, object]]):\n    return run_loop(\n        client=CLIENT,\n        model=MODEL,\n        system_prompt=SYSTEM,\n        registry=REGISTRY,\n        messages=messages,\n    )\n\n\nif __name__ == \"__main__\":\n    repl(prompt=\"\\033[36ms01 >> \\033[0m\", runner=run_session)\n"
+    },
+    {
+      "id": "s02",
+      "filename": "s02_tool_use.py",
+      "title": "Tool Protocol",
+      "subtitle": "Capabilities Without Loop Changes",
+      "loc": 31,
+      "tools": [
+        "bash",
+        "read_file",
+        "write_file",
+        "edit_file"
+      ],
+      "newTools": [
+        "read_file",
+        "write_file",
+        "edit_file"
+      ],
+      "coreAddition": "Schema-backed tool registry",
+      "keyInsight": "New capability should change the tool pool, not the loop shape",
+      "classes": [],
+      "functions": [
+        {
+          "name": "run_session",
+          "signature": "def run_session(messages: list[dict[str, object]])",
+          "startLine": 33
+        }
+      ],
+      "layer": "tools",
+      "source": "#!/usr/bin/env python3\n# Harness: tool protocol -- capabilities grow without changing the loop.\n\"\"\"\ns02_tool_use.py - Tool Protocol\n\nThis chapter keeps the same loop from s01 and only changes the tool pool.\nThat is still the right teaching move.\n\nThe update versus the old course is emphasis:\nreal coding-agent tools behave like protocol objects with schemas, names,\npermission hooks, and result mapping. This file keeps only the minimum slice of\nthat idea.\n\"\"\"\n\nfrom __future__ import annotations\n\nfrom pathlib import Path\n\nfrom agents._shared import ToolRegistry, base_tools, get_model, make_client, repl, run_loop\n\nWORKDIR = Path.cwd()\nMODEL = get_model()\nCLIENT = make_client()\nSYSTEM = (\n    f\"You are a coding agent at {WORKDIR}. \"\n    \"Prefer read_file, write_file, and edit_file for filesystem work. \"\n    \"Use bash when you need shell-native behavior.\"\n)\n\nREGISTRY = ToolRegistry(base_tools(WORKDIR))\n\n\ndef run_session(messages: list[dict[str, object]]):\n    return run_loop(\n        client=CLIENT,\n        model=MODEL,\n        system_prompt=SYSTEM,\n        registry=REGISTRY,\n        messages=messages,\n    )\n\n\nif __name__ == \"__main__\":\n    repl(prompt=\"\\033[36ms02 >> \\033[0m\", runner=run_session)\n"
+    },
+    {
+      "id": "s03",
+      "filename": "s03_todo_write.py",
+      "title": "Session State",
+      "subtitle": "Short-Lived Guidance",
+      "loc": 105,
+      "tools": [
+        "bash",
+        "read_file",
+        "write_file",
+        "edit_file",
+        "todo_write"
+      ],
+      "newTools": [
+        "todo_write"
+      ],
+      "coreAddition": "Todo-style checklist for the active turn",
+      "keyInsight": "Session guidance and durable task state are not the same thing",
+      "classes": [
+        {
+          "name": "TodoManager",
+          "startLine": 21,
+          "endLine": 70
+        }
+      ],
+      "functions": [
+        {
+          "name": "run_session",
+          "signature": "def run_session(messages: list[dict[str, object]])",
+          "startLine": 113
+        }
+      ],
+      "layer": "planning",
+      "source": "#!/usr/bin/env python3\n# Harness: session state -- a visible checklist for the current line of work.\n\"\"\"\ns03_todo_write.py - Session State\n\nThis chapter keeps TodoWrite, but with a clearer boundary:\n\n- todos are short-lived session guidance\n- they are not the durable task graph\n\nThat distinction matters later when we add persistent tasks.\n\"\"\"\n\nfrom __future__ import annotations\n\nfrom pathlib import Path\n\nfrom agents._shared import Tool, ToolRegistry, base_tools, get_model, make_client, repl, run_loop\n\n\nclass TodoManager:\n    def __init__(self) -> None:\n        self.items: list[dict[str, str]] = []\n\n    def update(self, todos: list[dict[str, str]]) -> str:\n        if len(todos) > 20:\n            raise ValueError(\"Max 20 todo items\")\n        in_progress = 0\n        normalized: list[dict[str, str]] = []\n        for index, item in enumerate(todos, start=1):\n            content = str(item.get(\"content\", \"\")).strip()\n            status = str(item.get(\"status\", \"pending\")).lower()\n            active_form = str(item.get(\"active_form\", \"\")).strip()\n            if not content:\n                raise ValueError(f\"Todo {index}: content is required\")\n            if status not in {\"pending\", \"in_progress\", \"completed\"}:\n                raise ValueError(f\"Todo {index}: invalid status {status!r}\")\n            if status == \"in_progress\":\n                in_progress += 1\n                if not active_form:\n                    raise ValueError(f\"Todo {index}: active_form required for in_progress\")\n            normalized.append(\n                {\n                    \"content\": content,\n                    \"status\": status,\n                    \"active_form\": active_form,\n                }\n            )\n        if in_progress > 1:\n            raise ValueError(\"Only one todo can be in_progress\")\n        self.items = [] if normalized and all(t[\"status\"] == \"completed\" for t in normalized) else normalized\n        return self.render()\n\n    def render(self) -> str:\n        if not self.items:\n            return \"No open session todos.\"\n        lines: list[str] = []\n        for item in self.items:\n            marker = {\n                \"pending\": \"[ ]\",\n                \"in_progress\": \"[>]\",\n                \"completed\": \"[x]\",\n            }[item[\"status\"]]\n            suffix = f\" <- {item['active_form']}\" if item[\"status\"] == \"in_progress\" else \"\"\n            lines.append(f\"{marker} {item['content']}{suffix}\")\n        done = sum(1 for item in self.items if item[\"status\"] == \"completed\")\n        lines.append(f\"\\n({done}/{len(self.items)} completed)\")\n        return \"\\n\".join(lines)\n\n\nWORKDIR = Path.cwd()\nMODEL = get_model()\nCLIENT = make_client()\nSYSTEM = f\"\"\"You are a coding agent at {WORKDIR}.\nUse todo_write for multi-step work.\nTreat the todo list as the session checklist, not the long-lived project task graph.\nKeep exactly one item in_progress.\"\"\"\n\nTODOS = TodoManager()\nREGISTRY = ToolRegistry(\n    base_tools(WORKDIR)\n    + [\n        Tool(\n            name=\"todo_write\",\n            description=\"Update the session todo list.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\n                    \"todos\": {\n                        \"type\": \"array\",\n                        \"items\": {\n                            \"type\": \"object\",\n                            \"properties\": {\n                                \"content\": {\"type\": \"string\"},\n                                \"status\": {\n                                    \"type\": \"string\",\n                                    \"enum\": [\"pending\", \"in_progress\", \"completed\"],\n                                },\n                                \"active_form\": {\"type\": \"string\"},\n                            },\n                            \"required\": [\"content\", \"status\"],\n                        },\n                    }\n                },\n                \"required\": [\"todos\"],\n            },\n            handler=lambda **kw: TODOS.update(kw[\"todos\"]),\n        )\n    ]\n)\n\n\ndef run_session(messages: list[dict[str, object]]):\n    return run_loop(\n        client=CLIENT,\n        model=MODEL,\n        system_prompt=SYSTEM,\n        registry=REGISTRY,\n        messages=messages,\n    )\n\n\nif __name__ == \"__main__\":\n    repl(prompt=\"\\033[36ms03 >> \\033[0m\", runner=run_session)\n"
+    },
+    {
+      "id": "s04",
+      "filename": "s04_subagent.py",
+      "title": "Delegation Modes",
+      "subtitle": "Fresh vs Forked Workers",
+      "loc": 107,
+      "tools": [
+        "bash",
+        "read_file",
+        "write_file",
+        "edit_file",
+        "delegate"
+      ],
+      "newTools": [
+        "delegate"
+      ],
+      "coreAddition": "Two distinct worker context models",
+      "keyInsight": "Some subagents start clean; others inherit scoped context",
+      "classes": [
+        {
+          "name": "DelegationRunner",
+          "startLine": 80,
+          "endLine": 87
+        }
+      ],
+      "functions": [
+        {
+          "name": "run_session",
+          "signature": "def run_session(messages: list[dict[str, object]])",
+          "startLine": 115
+        }
+      ],
+      "layer": "planning",
+      "source": "#!/usr/bin/env python3\n# Harness: delegation modes -- fresh workers and forked workers are different.\n\"\"\"\ns04_subagent.py - Delegation Modes\n\nThe old course treated subagents as always \"fresh context\".\nThat is no longer enough.\n\nThis chapter now teaches two delegation modes:\n\n- fresh: clean message history, summary return\n- fork: inherit recent context, then execute in a narrower scope\n\"\"\"\n\nfrom __future__ import annotations\n\nfrom pathlib import Path\nfrom typing import Any\n\nfrom agents._shared import (\n    Tool,\n    ToolRegistry,\n    base_tools,\n    extract_text,\n    get_model,\n    make_client,\n    repl,\n    run_loop,\n    summarize_messages,\n)\n\nWORKDIR = Path.cwd()\nMODEL = get_model()\nCLIENT = make_client()\nSYSTEM = f\"\"\"You are a coding agent at {WORKDIR}.\nUse delegate for focused subtasks.\nChoose mode=\\\"fresh\\\" when you want a clean worker.\nChoose mode=\\\"fork\\\" when the worker should inherit recent context.\"\"\"\nSUBAGENT_SYSTEM = (\n    f\"You are a delegated coding worker at {WORKDIR}. \"\n    \"Stay inside scope. Use tools directly, then return one concise report.\"\n)\n\n\ndef run_worker(\n    *,\n    prompt: str,\n    mode: str,\n    parent_messages: list[dict[str, Any]],\n) -> str:\n    if mode not in {\"fresh\", \"fork\"}:\n        return f\"Error: unknown delegation mode {mode!r}\"\n    worker_messages: list[dict[str, Any]]\n    if mode == \"fresh\":\n        worker_messages = [{\"role\": \"user\", \"content\": prompt}]\n    else:\n        inherited = summarize_messages(parent_messages, keep_last=8)\n        worker_messages = [\n            {\n                \"role\": \"user\",\n                \"content\": (\n                    \"<inherited-context>\\n\"\n                    f\"{inherited}\\n\"\n                    \"</inherited-context>\\n\\n\"\n                    f\"<directive>{prompt}</directive>\"\n                ),\n            }\n        ]\n    worker_response = run_loop(\n        client=CLIENT,\n        model=MODEL,\n        system_prompt=SUBAGENT_SYSTEM,\n        registry=ToolRegistry(base_tools(WORKDIR)),\n        messages=worker_messages,\n        max_turns=20,\n    )\n    return extract_text(worker_response.content) or \"(worker returned no summary)\"\n\n\nclass DelegationRunner:\n    def __init__(self) -> None:\n        self.parent_messages: list[dict[str, Any]] = []\n\n    def delegate(self, prompt: str, mode: str = \"fresh\") -> str:\n        return run_worker(prompt=prompt, mode=mode, parent_messages=self.parent_messages)\n\n\nRUNNER = DelegationRunner()\nREGISTRY = ToolRegistry(\n    base_tools(WORKDIR)\n    + [\n        Tool(\n            name=\"delegate\",\n            description=\"Run a focused worker in fresh or fork mode.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\n                    \"prompt\": {\"type\": \"string\"},\n                    \"mode\": {\n                        \"type\": \"string\",\n                        \"enum\": [\"fresh\", \"fork\"],\n                    },\n                },\n                \"required\": [\"prompt\"],\n            },\n            handler=lambda **kw: RUNNER.delegate(\n                kw[\"prompt\"],\n                kw.get(\"mode\", \"fresh\"),\n            ),\n        )\n    ]\n)\n\n\ndef run_session(messages: list[dict[str, object]]):\n    RUNNER.parent_messages = messages\n    return run_loop(\n        client=CLIENT,\n        model=MODEL,\n        system_prompt=SYSTEM,\n        registry=REGISTRY,\n        messages=messages,\n    )\n\n\nif __name__ == \"__main__\":\n    repl(prompt=\"\\033[36ms04 >> \\033[0m\", runner=run_session)\n"
+    },
+    {
+      "id": "s05",
+      "filename": "s05_skill_loading.py",
+      "title": "Skill Discovery",
+      "subtitle": "Activate Then Load",
+      "loc": 153,
+      "tools": [
+        "bash",
+        "read_file",
+        "write_file",
+        "edit_file",
+        "load_skill"
+      ],
+      "newTools": [
+        "load_skill"
+      ],
+      "coreAddition": "Active and conditional skill loading",
+      "keyInsight": "Knowledge is cheaper when the harness discovers and activates it late",
+      "classes": [
+        {
+          "name": "Skill",
+          "startLine": 29,
+          "endLine": 36
+        },
+        {
+          "name": "SkillLoader",
+          "startLine": 37,
+          "endLine": 122
+        }
+      ],
+      "functions": [
+        {
+          "name": "run_session",
+          "signature": "def run_session(messages: list[dict[str, object]])",
+          "startLine": 167
+        }
+      ],
+      "layer": "planning",
+      "source": "#!/usr/bin/env python3\n# Harness: skills -- late-bound knowledge with discovery and activation.\n\"\"\"\ns05_skill_loading.py - Skill Discovery\n\nThe old lesson only taught \"load a skill by name\".\nThis rewrite keeps that idea but adds the two missing realities:\n\n- skills come from multiple directories\n- some skills activate only when matching file paths appear\n\"\"\"\n\nfrom __future__ import annotations\n\nimport re\nfrom dataclasses import dataclass\nfrom pathlib import Path\nfrom typing import Any\n\nfrom agents._shared import Tool, ToolRegistry, base_tools, get_model, make_client, repl, run_loop\n\ntry:\n    import yaml\nexcept ImportError:  # pragma: no cover - teaching path\n    yaml = None\n\n\n@dataclass\nclass Skill:\n    name: str\n    description: str\n    body: str\n    source: str\n    paths: list[str]\n\n\nclass SkillLoader:\n    def __init__(self, workdir: Path) -> None:\n        self.workdir = workdir\n        self.all_skills: dict[str, Skill] = {}\n        self.active_skills: dict[str, Skill] = {}\n        self._load_static_sources()\n\n    def _parse_skill(self, file_path: Path) -> Skill:\n        raw = file_path.read_text(encoding=\"utf-8\")\n        match = re.match(r\"^---\\n(.*?)\\n---\\n(.*)\", raw, re.DOTALL)\n        frontmatter: dict[str, Any] = {}\n        body = raw.strip()\n        if match:\n            if yaml is not None:\n                parsed = yaml.safe_load(match.group(1))\n                frontmatter = parsed if isinstance(parsed, dict) else {}\n            body = match.group(2).strip()\n        name = str(frontmatter.get(\"name\", file_path.parent.name))\n        description = str(frontmatter.get(\"description\", \"No description provided.\"))\n        paths_raw = frontmatter.get(\"paths\", [])\n        if isinstance(paths_raw, str):\n            paths = [item.strip() for item in paths_raw.split(\",\") if item.strip()]\n        elif isinstance(paths_raw, list):\n            paths = [str(item).strip() for item in paths_raw if str(item).strip()]\n        else:\n            paths = []\n        return Skill(\n            name=name,\n            description=description,\n            body=body,\n            source=str(file_path),\n            paths=paths,\n        )\n\n    def _load_static_sources(self) -> None:\n        candidate_dirs = [\n            self.workdir / \"skills\",\n            self.workdir / \".claude\" / \"skills\",\n        ]\n        for directory in candidate_dirs:\n            if not directory.exists():\n                continue\n            for file_path in sorted(directory.rglob(\"SKILL.md\")):\n                skill = self._parse_skill(file_path)\n                self.all_skills[skill.name] = skill\n                if not skill.paths:\n                    self.active_skills[skill.name] = skill\n\n    def activate_for_paths(self, paths: list[str]) -> str:\n        activated: list[str] = []\n        normalized = [path.replace(\"\\\\\", \"/\") for path in paths]\n        for skill in self.all_skills.values():\n            if not skill.paths or skill.name in self.active_skills:\n                continue\n            for pattern in skill.paths:\n                pattern = pattern.replace(\"\\\\\", \"/\").strip()\n                if not pattern:\n                    continue\n                if any(pattern in path for path in normalized):\n                    self.active_skills[skill.name] = skill\n                    activated.append(skill.name)\n                    break\n        if not activated:\n            return \"No conditional skills activated.\"\n        return \"Activated skills: \" + \", \".join(sorted(activated))\n\n    def list_active(self) -> str:\n        if not self.active_skills:\n            return \"(no active skills)\"\n        return \"\\n\".join(\n            f\"- {skill.name}: {skill.description}\"\n            for skill in sorted(self.active_skills.values(), key=lambda item: item.name)\n        )\n\n    def load(self, name: str) -> str:\n        skill = self.active_skills.get(name)\n        if not skill:\n            available = \", \".join(sorted(self.active_skills)) or \"(none)\"\n            return f\"Error: unknown or inactive skill '{name}'. Active skills: {available}\"\n        return (\n            f\"<skill name=\\\"{skill.name}\\\" source=\\\"{skill.source}\\\">\\n\"\n            f\"{skill.body}\\n\"\n            \"</skill>\"\n        )\n\n\nWORKDIR = Path.cwd()\nMODEL = get_model()\nCLIENT = make_client()\nSKILLS = SkillLoader(WORKDIR)\nSYSTEM = f\"\"\"You are a coding agent at {WORKDIR}.\nSkills are loaded late.\nYou can inspect active skills in the system prompt, activate conditional skills\nfrom file paths, then load the full body when needed.\n\nActive skills:\n{SKILLS.list_active()}\"\"\"\n\nREGISTRY = ToolRegistry(\n    base_tools(WORKDIR)\n    + [\n        Tool(\n            name=\"activate_skills\",\n            description=\"Activate conditional skills that match touched paths.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\n                    \"paths\": {\n                        \"type\": \"array\",\n                        \"items\": {\"type\": \"string\"},\n                    }\n                },\n                \"required\": [\"paths\"],\n            },\n            handler=lambda **kw: SKILLS.activate_for_paths(kw[\"paths\"]),\n        ),\n        Tool(\n            name=\"load_skill\",\n            description=\"Load the full body of an active skill.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\"name\": {\"type\": \"string\"}},\n                \"required\": [\"name\"],\n            },\n            handler=lambda **kw: SKILLS.load(kw[\"name\"]),\n        ),\n    ]\n)\n\n\ndef run_session(messages: list[dict[str, object]]):\n    return run_loop(\n        client=CLIENT,\n        model=MODEL,\n        system_prompt=SYSTEM,\n        registry=REGISTRY,\n        messages=messages,\n    )\n\n\nif __name__ == \"__main__\":\n    repl(prompt=\"\\033[36ms05 >> \\033[0m\", runner=run_session)\n"
+    },
+    {
+      "id": "s06",
+      "filename": "s06_context_compact.py",
+      "title": "Context Management Stack",
+      "subtitle": "Budget, Summaries, Compact",
+      "loc": 119,
+      "tools": [
+        "bash",
+        "read_file",
+        "write_file",
+        "edit_file",
+        "compact"
+      ],
+      "newTools": [
+        "compact"
+      ],
+      "coreAddition": "Layered history control",
+      "keyInsight": "Context management is a stack of interventions, not one compact button",
+      "classes": [
+        {
+          "name": "ContextManager",
+          "startLine": 34,
+          "endLine": 87
+        }
+      ],
+      "functions": [
+        {
+          "name": "compact_handler",
+          "signature": "def compact_handler(reason: str = \"manual compact requested\")",
+          "startLine": 100
+        },
+        {
+          "name": "before_request",
+          "signature": "def before_request(messages: list[dict[str, Any]])",
+          "startLine": 121
+        },
+        {
+          "name": "run_session",
+          "signature": "def run_session(messages: list[dict[str, object]])",
+          "startLine": 128
+        }
+      ],
+      "layer": "memory",
+      "source": "#!/usr/bin/env python3\n# Harness: context management -- not one compact, but a stack of interventions.\n\"\"\"\ns06_context_compact.py - Context Management Stack\n\nThe correction here is the biggest one in the course.\nWe no longer teach a single three-stage compact pipeline as if that were the\nwhole story. Instead we model a stack:\n\n- tool-result budgeting for oversized history\n- micro summaries for stale detail\n- manual compaction for explicit resets\n\"\"\"\n\nfrom __future__ import annotations\n\nimport json\nimport time\nfrom pathlib import Path\nfrom typing import Any\n\nfrom agents._shared import (\n    Tool,\n    ToolRegistry,\n    base_tools,\n    get_model,\n    make_client,\n    repl,\n    run_loop,\n    summarize_messages,\n)\n\n\nclass ContextManager:\n    def __init__(self, workdir: Path) -> None:\n        self.workdir = workdir\n        self.transcript_dir = workdir / \".transcripts\"\n        self.transcript_dir.mkdir(exist_ok=True)\n\n    def estimate_tokens(self, messages: list[dict[str, Any]]) -> int:\n        return len(json.dumps(messages, default=str, ensure_ascii=False)) // 4\n\n    def apply_result_budget(self, messages: list[dict[str, Any]]) -> None:\n        tool_results: list[dict[str, Any]] = []\n        for message in messages:\n            if message[\"role\"] == \"user\" and isinstance(message.get(\"content\"), list):\n                for part in message[\"content\"]:\n                    if isinstance(part, dict) and part.get(\"type\") == \"tool_result\":\n                        tool_results.append(part)\n        for part in tool_results[:-4]:\n            content = part.get(\"content\")\n            if isinstance(content, str) and len(content) > 500:\n                part[\"content\"] = content[:240] + \"\\n...[truncated by result budget]\"\n\n    def apply_micro_summary(self, messages: list[dict[str, Any]]) -> None:\n        assistant_turns = [msg for msg in messages if msg[\"role\"] == \"assistant\"]\n        if len(assistant_turns) < 8:\n            return\n        for message in messages[:-6]:\n            if message[\"role\"] != \"user\":\n                continue\n            content = message.get(\"content\")\n            if isinstance(content, str) and len(content) > 300:\n                message[\"content\"] = content[:180] + \"\\n...[micro-summary placeholder]\"\n\n    def compact_now(self, messages: list[dict[str, Any]], reason: str) -> str:\n        transcript_path = self.transcript_dir / f\"compact_{int(time.time())}.jsonl\"\n        with transcript_path.open(\"w\", encoding=\"utf-8\") as handle:\n            for message in messages:\n                handle.write(json.dumps(message, default=str, ensure_ascii=False) + \"\\n\")\n        summary = summarize_messages(messages, keep_last=10)\n        messages[:] = [\n            {\n                \"role\": \"user\",\n                \"content\": (\n                    \"<compact-boundary>\\n\"\n                    f\"Reason: {reason}\\n\"\n                    f\"Transcript: {transcript_path}\\n\"\n                    \"Recent continuity summary:\\n\"\n                    f\"{summary}\\n\"\n                    \"</compact-boundary>\"\n                ),\n            }\n        ]\n        return f\"Conversation compacted. Transcript saved to {transcript_path}\"\n\n\nWORKDIR = Path.cwd()\nMODEL = get_model()\nCLIENT = make_client()\nCTX = ContextManager(WORKDIR)\nSYSTEM = f\"\"\"You are a coding agent at {WORKDIR}.\nManage context strategically.\nAssume the harness can trim old tool results, replace stale detail with\nmicro-summaries, and compact the session when asked.\"\"\"\n\n_pending_manual_compact = {\"reason\": None}\n\n\ndef compact_handler(reason: str = \"manual compact requested\") -> str:\n    _pending_manual_compact[\"reason\"] = reason\n    return \"Compact requested. Finish the current tool turn, then reset the active context.\"\n\n\nREGISTRY = ToolRegistry(\n    base_tools(WORKDIR)\n    + [\n        Tool(\n            name=\"compact\",\n            description=\"Create a compact boundary and keep only a continuity summary in context.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\"reason\": {\"type\": \"string\"}},\n            },\n            handler=lambda **kw: compact_handler(kw.get(\"reason\", \"manual compact requested\")),\n        )\n    ]\n)\n\n\ndef before_request(messages: list[dict[str, Any]]) -> None:\n    CTX.apply_result_budget(messages)\n    CTX.apply_micro_summary(messages)\n    if CTX.estimate_tokens(messages) > 50_000:\n        CTX.compact_now(messages, \"token threshold crossed\")\n\n\ndef run_session(messages: list[dict[str, object]]):\n    response = run_loop(\n        client=CLIENT,\n        model=MODEL,\n        system_prompt=SYSTEM,\n        registry=REGISTRY,\n        messages=messages,\n        before_request=before_request,\n    )\n    if _pending_manual_compact[\"reason\"]:\n        reason = str(_pending_manual_compact[\"reason\"])\n        _pending_manual_compact[\"reason\"] = None\n        CTX.compact_now(messages, reason)\n    return response\n\n\nif __name__ == \"__main__\":\n    repl(prompt=\"\\033[36ms06 >> \\033[0m\", runner=run_session)\n"
+    },
+    {
+      "id": "s07",
+      "filename": "s07_task_system.py",
+      "title": "Persistent Task Runtime",
+      "subtitle": "Control Plane Outside the Transcript",
+      "loc": 181,
+      "tools": [
+        "bash",
+        "read_file",
+        "write_file",
+        "edit_file",
+        "task_create",
+        "task_get",
+        "task_list",
+        "task_update"
+      ],
+      "newTools": [
+        "task_create",
+        "task_get",
+        "task_list",
+        "task_update"
+      ],
+      "coreAddition": "Durable file-backed tasks",
+      "keyInsight": "Tasks matter because they survive context resets",
+      "classes": [
+        {
+          "name": "TaskStore",
+          "startLine": 24,
+          "endLine": 122
+        }
+      ],
+      "functions": [
+        {
+          "name": "run_session",
+          "signature": "def run_session(messages: list[dict[str, object]])",
+          "startLine": 193
+        }
+      ],
+      "layer": "planning",
+      "source": "#!/usr/bin/env python3\n# Harness: persistent tasks -- durable state outside the conversation transcript.\n\"\"\"\ns07_task_system.py - Persistent Task Runtime\n\nThis chapter upgrades the old \"task graph in the repo\" lesson.\nThe new teaching version keeps file-backed tasks, but makes the control-plane\nidea explicit:\n\n- tasks live outside conversation history\n- task-list identity is separate from the session transcript\n- dependencies and ownership survive compaction\n\"\"\"\n\nfrom __future__ import annotations\n\nimport json\nimport time\nfrom pathlib import Path\n\nfrom agents._shared import Tool, ToolRegistry, base_tools, get_model, make_client, repl, run_loop\n\n\nclass TaskStore:\n    def __init__(self, root: Path, task_list_id: str = \"default\") -> None:\n        self.root = root / \".lrcc\" / \"tasks\" / task_list_id\n        self.root.mkdir(parents=True, exist_ok=True)\n        self.high_water_mark = self.root / \".high-water-mark\"\n\n    def _next_id(self) -> str:\n        existing = [int(path.stem) for path in self.root.glob(\"*.json\") if path.stem.isdigit()]\n        current_mark = int(self.high_water_mark.read_text() or \"0\") if self.high_water_mark.exists() else 0\n        next_id = max(existing + [current_mark], default=0) + 1\n        self.high_water_mark.write_text(str(next_id), encoding=\"utf-8\")\n        return str(next_id)\n\n    def _path(self, task_id: str) -> Path:\n        return self.root / f\"{task_id}.json\"\n\n    def create(self, subject: str, description: str = \"\") -> str:\n        task = {\n            \"id\": self._next_id(),\n            \"subject\": subject,\n            \"description\": description,\n            \"status\": \"pending\",\n            \"owner\": \"\",\n            \"blocked_by\": [],\n            \"blocks\": [],\n            \"created_at\": time.time(),\n            \"updated_at\": time.time(),\n        }\n        self._path(task[\"id\"]).write_text(json.dumps(task, indent=2), encoding=\"utf-8\")\n        return json.dumps(task, indent=2)\n\n    def get(self, task_id: str) -> str:\n        path = self._path(task_id)\n        if not path.exists():\n            return f\"Error: task {task_id} not found\"\n        return path.read_text(encoding=\"utf-8\")\n\n    def list_all(self) -> str:\n        tasks = [\n            json.loads(path.read_text(encoding=\"utf-8\"))\n            for path in sorted(self.root.glob(\"*.json\"))\n            if path.stem.isdigit()\n        ]\n        if not tasks:\n            return \"No tasks.\"\n        lines: list[str] = []\n        for task in tasks:\n            marker = {\n                \"pending\": \"[ ]\",\n                \"in_progress\": \"[>]\",\n                \"completed\": \"[x]\",\n            }.get(task[\"status\"], \"[?]\")\n            owner = f\" owner={task['owner']}\" if task.get(\"owner\") else \"\"\n            blocked = (\n                f\" blocked_by={task['blocked_by']}\"\n                if task.get(\"blocked_by\")\n                else \"\"\n            )\n            lines.append(f\"{marker} #{task['id']}: {task['subject']}{owner}{blocked}\")\n        return \"\\n\".join(lines)\n\n    def update(\n        self,\n        task_id: str,\n        *,\n        status: str | None = None,\n        owner: str | None = None,\n        add_blocked_by: list[str] | None = None,\n    ) -> str:\n        path = self._path(task_id)\n        if not path.exists():\n            return f\"Error: task {task_id} not found\"\n        task = json.loads(path.read_text(encoding=\"utf-8\"))\n        if status is not None:\n            if status not in {\"pending\", \"in_progress\", \"completed\"}:\n                return f\"Error: invalid status {status!r}\"\n            task[\"status\"] = status\n        if owner is not None:\n            task[\"owner\"] = owner\n        if add_blocked_by:\n            merged = list(dict.fromkeys(task.get(\"blocked_by\", []) + add_blocked_by))\n            task[\"blocked_by\"] = merged\n        task[\"updated_at\"] = time.time()\n        path.write_text(json.dumps(task, indent=2), encoding=\"utf-8\")\n        if status == \"completed\":\n            self._clear_dependency(task_id)\n        return json.dumps(task, indent=2)\n\n    def _clear_dependency(self, completed_id: str) -> None:\n        for path in self.root.glob(\"*.json\"):\n            if not path.stem.isdigit():\n                continue\n            task = json.loads(path.read_text(encoding=\"utf-8\"))\n            if completed_id in task.get(\"blocked_by\", []):\n                task[\"blocked_by\"] = [item for item in task[\"blocked_by\"] if item != completed_id]\n                task[\"updated_at\"] = time.time()\n                path.write_text(json.dumps(task, indent=2), encoding=\"utf-8\")\n\n\nWORKDIR = Path.cwd()\nMODEL = get_model()\nCLIENT = make_client()\nTASKS = TaskStore(WORKDIR)\nSYSTEM = f\"\"\"You are a coding agent at {WORKDIR}.\nUse the persistent task tools for long-lived work tracking.\nRemember that tasks outlive the current transcript.\"\"\"\n\nREGISTRY = ToolRegistry(\n    base_tools(WORKDIR)\n    + [\n        Tool(\n            name=\"task_create\",\n            description=\"Create a durable task in the task list.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\n                    \"subject\": {\"type\": \"string\"},\n                    \"description\": {\"type\": \"string\"},\n                },\n                \"required\": [\"subject\"],\n            },\n            handler=lambda **kw: TASKS.create(kw[\"subject\"], kw.get(\"description\", \"\")),\n        ),\n        Tool(\n            name=\"task_get\",\n            description=\"Read a task by ID.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\"task_id\": {\"type\": \"string\"}},\n                \"required\": [\"task_id\"],\n            },\n            handler=lambda **kw: TASKS.get(kw[\"task_id\"]),\n        ),\n        Tool(\n            name=\"task_list\",\n            description=\"List all tasks in the current task list.\",\n            input_schema={\"type\": \"object\", \"properties\": {}},\n            handler=lambda **kw: TASKS.list_all(),\n        ),\n        Tool(\n            name=\"task_update\",\n            description=\"Update task status, owner, or dependencies.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\n                    \"task_id\": {\"type\": \"string\"},\n                    \"status\": {\n                        \"type\": \"string\",\n                        \"enum\": [\"pending\", \"in_progress\", \"completed\"],\n                    },\n                    \"owner\": {\"type\": \"string\"},\n                    \"add_blocked_by\": {\n                        \"type\": \"array\",\n                        \"items\": {\"type\": \"string\"},\n                    },\n                },\n                \"required\": [\"task_id\"],\n            },\n            handler=lambda **kw: TASKS.update(\n                kw[\"task_id\"],\n                status=kw.get(\"status\"),\n                owner=kw.get(\"owner\"),\n                add_blocked_by=kw.get(\"add_blocked_by\"),\n            ),\n        ),\n    ]\n)\n\n\ndef run_session(messages: list[dict[str, object]]):\n    return run_loop(\n        client=CLIENT,\n        model=MODEL,\n        system_prompt=SYSTEM,\n        registry=REGISTRY,\n        messages=messages,\n    )\n\n\nif __name__ == \"__main__\":\n    repl(prompt=\"\\033[36ms07 >> \\033[0m\", runner=run_session)\n"
+    },
+    {
+      "id": "s08",
+      "filename": "s08_background_tasks.py",
+      "title": "Background Runtime",
+      "subtitle": "Foreground Loop, Background Work",
+      "loc": 131,
+      "tools": [
+        "bash",
+        "read_file",
+        "write_file",
+        "edit_file",
+        "background_run",
+        "background_check"
+      ],
+      "newTools": [
+        "background_run",
+        "background_check"
+      ],
+      "coreAddition": "Runtime-owned background tasks",
+      "keyInsight": "Slow operations belong to the runtime, not the foreground reasoning thread",
+      "classes": [
+        {
+          "name": "BackgroundManager",
+          "startLine": 24,
+          "endLine": 90
+        }
+      ],
+      "functions": [
+        {
+          "name": "before_request",
+          "signature": "def before_request(messages: list[dict[str, object]])",
+          "startLine": 125
+        },
+        {
+          "name": "run_session",
+          "signature": "def run_session(messages: list[dict[str, object]])",
+          "startLine": 141
+        }
+      ],
+      "layer": "concurrency",
+      "source": "#!/usr/bin/env python3\n# Harness: background runtime -- slow work should not stall the foreground loop.\n\"\"\"\ns08_background_tasks.py - Background Runtime\n\nThe old lesson only modeled background shell commands.\nThis rewrite keeps that core idea, but frames it as a runtime concern:\n\n- foreground reasoning stays responsive\n- background tasks produce notifications\n- the harness owns task lifecycle, not the model\n\"\"\"\n\nfrom __future__ import annotations\n\nimport subprocess\nimport threading\nimport uuid\nfrom pathlib import Path\n\nfrom agents._shared import Tool, ToolRegistry, base_tools, get_model, make_client, repl, run_loop\n\n\nclass BackgroundManager:\n    def __init__(self, workdir: Path) -> None:\n        self.workdir = workdir\n        self.tasks: dict[str, dict[str, str | None]] = {}\n        self._notifications: list[dict[str, str]] = []\n        self._lock = threading.Lock()\n\n    def run(self, command: str) -> str:\n        task_id = str(uuid.uuid4())[:8]\n        self.tasks[task_id] = {\n            \"status\": \"running\",\n            \"command\": command,\n            \"result\": None,\n        }\n        thread = threading.Thread(target=self._execute, args=(task_id, command), daemon=True)\n        thread.start()\n        return f\"Background task {task_id} launched: {command[:80]}\"\n\n    def _execute(self, task_id: str, command: str) -> None:\n        try:\n            result = subprocess.run(\n                command,\n                shell=True,\n                cwd=self.workdir,\n                capture_output=True,\n                text=True,\n                timeout=300,\n            )\n            output = (result.stdout + result.stderr).strip() or \"(no output)\"\n            status = \"completed\"\n        except subprocess.TimeoutExpired:\n            output = \"Error: Timeout (300s)\"\n            status = \"timeout\"\n        self.tasks[task_id][\"status\"] = status\n        self.tasks[task_id][\"result\"] = output[:50_000]\n        with self._lock:\n            self._notifications.append(\n                {\n                    \"task_id\": task_id,\n                    \"status\": status,\n                    \"result\": output[:500],\n                }\n            )\n\n    def check(self, task_id: str | None = None) -> str:\n        if task_id:\n            task = self.tasks.get(task_id)\n            if not task:\n                return f\"Error: unknown task {task_id}\"\n            result = task.get(\"result\")\n            if result is None:\n                return f\"[{task['status']}] (running)\"\n            return f\"[{task['status']}] {result}\"\n        if not self.tasks:\n            return \"No background tasks.\"\n        return \"\\n\".join(\n            f\"{task_id}: [{task['status']}] {task['command']}\"\n            for task_id, task in sorted(self.tasks.items())\n        )\n\n    def drain_notifications(self) -> list[dict[str, str]]:\n        with self._lock:\n            notifications = list(self._notifications)\n            self._notifications.clear()\n        return notifications\n\n\nWORKDIR = Path.cwd()\nMODEL = get_model()\nCLIENT = make_client()\nBG = BackgroundManager(WORKDIR)\nSYSTEM = f\"\"\"You are a coding agent at {WORKDIR}.\nUse background_run for slow commands.\nTreat notifications as runtime events injected by the harness.\"\"\"\n\nREGISTRY = ToolRegistry(\n    base_tools(WORKDIR)\n    + [\n        Tool(\n            name=\"background_run\",\n            description=\"Launch a long-running shell command in the background.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\"command\": {\"type\": \"string\"}},\n                \"required\": [\"command\"],\n            },\n            handler=lambda **kw: BG.run(kw[\"command\"]),\n        ),\n        Tool(\n            name=\"background_check\",\n            description=\"Inspect one background task or list them all.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\"task_id\": {\"type\": \"string\"}},\n            },\n            handler=lambda **kw: BG.check(kw.get(\"task_id\")),\n        ),\n    ]\n)\n\n\ndef before_request(messages: list[dict[str, object]]) -> None:\n    notifications = BG.drain_notifications()\n    if not notifications:\n        return\n    payload = \"\\n\".join(\n        f\"[bg:{item['task_id']}] {item['status']}: {item['result']}\"\n        for item in notifications\n    )\n    messages.append(\n        {\n            \"role\": \"user\",\n            \"content\": f\"<task-notifications>\\n{payload}\\n</task-notifications>\",\n        }\n    )\n\n\ndef run_session(messages: list[dict[str, object]]):\n    return run_loop(\n        client=CLIENT,\n        model=MODEL,\n        system_prompt=SYSTEM,\n        registry=REGISTRY,\n        messages=messages,\n        before_request=before_request,\n    )\n\n\nif __name__ == \"__main__\":\n    repl(prompt=\"\\033[36ms08 >> \\033[0m\", runner=run_session)\n"
+    },
+    {
+      "id": "s09",
+      "filename": "s09_agent_teams.py",
+      "title": "Team Mailboxes",
+      "subtitle": "Shared Collaboration State",
+      "loc": 192,
+      "tools": [
+        "bash",
+        "read_file",
+        "write_file",
+        "edit_file",
+        "team_spawn",
+        "send_message",
+        "read_inbox",
+        "team_list"
+      ],
+      "newTools": [
+        "team_spawn",
+        "send_message",
+        "read_inbox",
+        "team_list"
+      ],
+      "coreAddition": "Roster + inbox + team identity",
+      "keyInsight": "Multi-agent work needs explicit shared state, not just extra prompts",
+      "classes": [
+        {
+          "name": "MailboxBus",
+          "startLine": 26,
+          "endLine": 55
+        },
+        {
+          "name": "TeamManager",
+          "startLine": 56,
+          "endLine": 153
+        }
+      ],
+      "functions": [
+        {
+          "name": "run_session",
+          "signature": "def run_session(messages: list[dict[str, object]])",
+          "startLine": 210
+        }
+      ],
+      "layer": "collaboration",
+      "source": "#!/usr/bin/env python3\n# Harness: shared collaboration state -- teammates, inboxes, and team identity.\n\"\"\"\ns09_agent_teams.py - Team Mailboxes\n\nThis chapter keeps the durable lesson from the old course:\nmulti-agent collaboration needs explicit shared state.\n\nThe modernized version emphasizes three shared artifacts:\n\n- a team roster\n- mailbox files\n- a shared task-list identity\n\"\"\"\n\nfrom __future__ import annotations\n\nimport json\nimport threading\nimport time\nfrom pathlib import Path\n\nfrom agents._shared import Tool, ToolRegistry, base_tools, get_model, make_client, repl, run_loop\n\n\nclass MailboxBus:\n    def __init__(self, inbox_dir: Path) -> None:\n        self.inbox_dir = inbox_dir\n        self.inbox_dir.mkdir(parents=True, exist_ok=True)\n\n    def send(self, sender: str, recipient: str, message: str, summary: str = \"\") -> str:\n        payload = {\n            \"from\": sender,\n            \"message\": message,\n            \"summary\": summary,\n            \"timestamp\": time.time(),\n        }\n        path = self.inbox_dir / f\"{recipient}.jsonl\"\n        with path.open(\"a\", encoding=\"utf-8\") as handle:\n            handle.write(json.dumps(payload) + \"\\n\")\n        return f\"Sent message to {recipient}\"\n\n    def read(self, recipient: str) -> list[dict[str, object]]:\n        path = self.inbox_dir / f\"{recipient}.jsonl\"\n        if not path.exists():\n            return []\n        rows = [\n            json.loads(line)\n            for line in path.read_text(encoding=\"utf-8\").splitlines()\n            if line.strip()\n        ]\n        path.write_text(\"\", encoding=\"utf-8\")\n        return rows\n\n\nclass TeamManager:\n    def __init__(self, root: Path, bus: MailboxBus) -> None:\n        self.root = root / \".lrcc\" / \"team\"\n        self.root.mkdir(parents=True, exist_ok=True)\n        self.config_path = self.root / \"config.json\"\n        self.bus = bus\n        self.config = self._load()\n        self.threads: dict[str, threading.Thread] = {}\n\n    def _load(self) -> dict[str, object]:\n        if self.config_path.exists():\n            return json.loads(self.config_path.read_text(encoding=\"utf-8\"))\n        return {\"team_name\": \"default\", \"members\": []}\n\n    def _save(self) -> None:\n        self.config_path.write_text(json.dumps(self.config, indent=2), encoding=\"utf-8\")\n\n    def spawn(self, name: str, role: str, prompt: str) -> str:\n        members = self.config[\"members\"]\n        member = next((item for item in members if item[\"name\"] == name), None)\n        if member is None:\n            member = {\"name\": name, \"role\": role, \"status\": \"working\"}\n            members.append(member)\n        else:\n            member[\"role\"] = role\n            member[\"status\"] = \"working\"\n        self._save()\n\n        def teammate_loop() -> None:\n            messages = [{\"role\": \"user\", \"content\": prompt}]\n            system = (\n                f\"You are teammate '{name}' with role '{role}'. \"\n                \"Use send_message to coordinate. Stay focused and concise.\"\n            )\n            registry = ToolRegistry(\n                base_tools(Path.cwd())\n                + [\n                    Tool(\n                        name=\"send_message\",\n                        description=\"Send a message to another teammate.\",\n                        input_schema={\n                            \"type\": \"object\",\n                            \"properties\": {\n                                \"to\": {\"type\": \"string\"},\n                                \"message\": {\"type\": \"string\"},\n                                \"summary\": {\"type\": \"string\"},\n                            },\n                            \"required\": [\"to\", \"message\"],\n                        },\n                        handler=lambda **kw: self.bus.send(\n                            name,\n                            kw[\"to\"],\n                            kw[\"message\"],\n                            kw.get(\"summary\", \"\"),\n                        ),\n                    )\n                ]\n            )\n\n            def before_request(history: list[dict[str, object]]) -> None:\n                inbox = self.bus.read(name)\n                if inbox:\n                    history.append(\n                        {\n                            \"role\": \"user\",\n                            \"content\": \"<inbox>\\n\" + json.dumps(inbox, indent=2) + \"\\n</inbox>\",\n                        }\n                    )\n\n            try:\n                run_loop(\n                    client=make_client(),\n                    model=get_model(),\n                    system_prompt=system,\n                    registry=registry,\n                    messages=messages,\n                    before_request=before_request,\n                    max_turns=20,\n                )\n            finally:\n                member[\"status\"] = \"idle\"\n                self._save()\n\n        thread = threading.Thread(target=teammate_loop, daemon=True)\n        self.threads[name] = thread\n        thread.start()\n        return f\"Spawned teammate '{name}' ({role})\"\n\n    def list_members(self) -> str:\n        members = self.config[\"members\"]\n        if not members:\n            return \"No teammates.\"\n        lines = [f\"Team: {self.config['team_name']}\"]\n        for member in members:\n            lines.append(f\"- {member['name']} ({member['role']}): {member['status']}\")\n        return \"\\n\".join(lines)\n\n\nWORKDIR = Path.cwd()\nMODEL = get_model()\nCLIENT = make_client()\nBUS = MailboxBus(WORKDIR / \".lrcc\" / \"team\" / \"inbox\")\nTEAM = TeamManager(WORKDIR, BUS)\nSYSTEM = f\"\"\"You are a team lead at {WORKDIR}.\nUse team_spawn to create persistent teammates and send_message to coordinate.\nTreat mailboxes as shared collaboration state, not ad-hoc chat.\"\"\"\n\nREGISTRY = ToolRegistry(\n    base_tools(WORKDIR)\n    + [\n        Tool(\n            name=\"team_spawn\",\n            description=\"Create or resume a persistent teammate.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\n                    \"name\": {\"type\": \"string\"},\n                    \"role\": {\"type\": \"string\"},\n                    \"prompt\": {\"type\": \"string\"},\n                },\n                \"required\": [\"name\", \"role\", \"prompt\"],\n            },\n            handler=lambda **kw: TEAM.spawn(kw[\"name\"], kw[\"role\"], kw[\"prompt\"]),\n        ),\n        Tool(\n            name=\"send_message\",\n            description=\"Send a mailbox message to a teammate.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\n                    \"to\": {\"type\": \"string\"},\n                    \"message\": {\"type\": \"string\"},\n                    \"summary\": {\"type\": \"string\"},\n                },\n                \"required\": [\"to\", \"message\"],\n            },\n            handler=lambda **kw: BUS.send(\"lead\", kw[\"to\"], kw[\"message\"], kw.get(\"summary\", \"\")),\n        ),\n        Tool(\n            name=\"read_inbox\",\n            description=\"Read and drain the lead inbox.\",\n            input_schema={\"type\": \"object\", \"properties\": {}},\n            handler=lambda **kw: json.dumps(BUS.read(\"lead\"), indent=2) or \"[]\",\n        ),\n        Tool(\n            name=\"team_list\",\n            description=\"List team members and statuses.\",\n            input_schema={\"type\": \"object\", \"properties\": {}},\n            handler=lambda **kw: TEAM.list_members(),\n        ),\n    ]\n)\n\n\ndef run_session(messages: list[dict[str, object]]):\n    return run_loop(\n        client=CLIENT,\n        model=MODEL,\n        system_prompt=SYSTEM,\n        registry=REGISTRY,\n        messages=messages,\n    )\n\n\nif __name__ == \"__main__\":\n    repl(prompt=\"\\033[36ms09 >> \\033[0m\", runner=run_session)\n"
+    },
+    {
+      "id": "s10",
+      "filename": "s10_team_protocols.py",
+      "title": "Team Protocols",
+      "subtitle": "Request IDs and Approval Flows",
+      "loc": 145,
+      "tools": [
+        "bash",
+        "read_file",
+        "write_file",
+        "edit_file",
+        "request_plan",
+        "respond_plan",
+        "request_shutdown",
+        "poll_protocols"
+      ],
+      "newTools": [
+        "request_plan",
+        "respond_plan",
+        "request_shutdown",
+        "poll_protocols"
+      ],
+      "coreAddition": "Structured request-response coordination",
+      "keyInsight": "Safety improves when coordination is protocolized",
+      "classes": [
+        {
+          "name": "ProtocolState",
+          "startLine": 25,
+          "endLine": 69
+        }
+      ],
+      "functions": [
+        {
+          "name": "run_session",
+          "signature": "def run_session(messages: list[dict[str, object]])",
+          "startLine": 155
+        }
+      ],
+      "layer": "collaboration",
+      "source": "#!/usr/bin/env python3\n# Harness: structured coordination -- request IDs turn messages into protocols.\n\"\"\"\ns10_team_protocols.py - Team Protocols\n\nThis chapter keeps the mailbox model from s09 and adds a missing layer:\nnot every message should be plain chat.\n\nThe teaching version introduces two request/response protocols:\n\n- shutdown approval\n- plan approval\n\"\"\"\n\nfrom __future__ import annotations\n\nimport json\nimport time\nimport uuid\nfrom pathlib import Path\n\nfrom agents._shared import Tool, ToolRegistry, base_tools, get_model, make_client, repl, run_loop\n\n\nclass ProtocolState:\n    def __init__(self, state_dir: Path) -> None:\n        self.state_dir = state_dir\n        self.state_dir.mkdir(parents=True, exist_ok=True)\n        self.shutdown_requests: dict[str, dict[str, object]] = {}\n        self.plan_requests: dict[str, dict[str, object]] = {}\n\n    def request_shutdown(self, teammate: str, reason: str = \"\") -> str:\n        request_id = str(uuid.uuid4())[:8]\n        self.shutdown_requests[request_id] = {\n            \"target\": teammate,\n            \"status\": \"pending\",\n            \"reason\": reason,\n            \"created_at\": time.time(),\n        }\n        return json.dumps(self.shutdown_requests[request_id] | {\"request_id\": request_id}, indent=2)\n\n    def submit_plan(self, teammate: str, plan: str) -> str:\n        request_id = str(uuid.uuid4())[:8]\n        self.plan_requests[request_id] = {\n            \"from\": teammate,\n            \"plan\": plan,\n            \"status\": \"pending\",\n            \"created_at\": time.time(),\n        }\n        return json.dumps(self.plan_requests[request_id] | {\"request_id\": request_id}, indent=2)\n\n    def resolve(self, protocol: str, request_id: str, approve: bool, feedback: str = \"\") -> str:\n        table = self.shutdown_requests if protocol == \"shutdown\" else self.plan_requests\n        entry = table.get(request_id)\n        if entry is None:\n            return f\"Error: unknown {protocol} request {request_id}\"\n        entry[\"status\"] = \"approved\" if approve else \"rejected\"\n        entry[\"feedback\"] = feedback\n        entry[\"resolved_at\"] = time.time()\n        return json.dumps(entry | {\"request_id\": request_id}, indent=2)\n\n    def list_all(self) -> str:\n        payload = {\n            \"shutdown_requests\": self.shutdown_requests,\n            \"plan_requests\": self.plan_requests,\n        }\n        return json.dumps(payload, indent=2) if any(payload.values()) else \"No protocol state.\"\n\n\nWORKDIR = Path.cwd()\nMODEL = get_model()\nCLIENT = make_client()\nSTATE = ProtocolState(WORKDIR / \".lrcc\" / \"protocols\")\nSYSTEM = f\"\"\"You are a coordinating agent at {WORKDIR}.\nUse request IDs for non-trivial coordination.\nPrefer structured approval protocols over ambiguous free-form messages.\"\"\"\n\nREGISTRY = ToolRegistry(\n    base_tools(WORKDIR)\n    + [\n        Tool(\n            name=\"request_shutdown\",\n            description=\"Open a structured shutdown request.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\n                    \"teammate\": {\"type\": \"string\"},\n                    \"reason\": {\"type\": \"string\"},\n                },\n                \"required\": [\"teammate\"],\n            },\n            handler=lambda **kw: STATE.request_shutdown(kw[\"teammate\"], kw.get(\"reason\", \"\")),\n        ),\n        Tool(\n            name=\"respond_shutdown\",\n            description=\"Approve or reject a shutdown request.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\n                    \"request_id\": {\"type\": \"string\"},\n                    \"approve\": {\"type\": \"boolean\"},\n                    \"feedback\": {\"type\": \"string\"},\n                },\n                \"required\": [\"request_id\", \"approve\"],\n            },\n            handler=lambda **kw: STATE.resolve(\n                \"shutdown\",\n                kw[\"request_id\"],\n                kw[\"approve\"],\n                kw.get(\"feedback\", \"\"),\n            ),\n        ),\n        Tool(\n            name=\"submit_plan\",\n            description=\"Open a structured plan approval request.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\n                    \"teammate\": {\"type\": \"string\"},\n                    \"plan\": {\"type\": \"string\"},\n                },\n                \"required\": [\"teammate\", \"plan\"],\n            },\n            handler=lambda **kw: STATE.submit_plan(kw[\"teammate\"], kw[\"plan\"]),\n        ),\n        Tool(\n            name=\"review_plan\",\n            description=\"Approve or reject a plan request.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\n                    \"request_id\": {\"type\": \"string\"},\n                    \"approve\": {\"type\": \"boolean\"},\n                    \"feedback\": {\"type\": \"string\"},\n                },\n                \"required\": [\"request_id\", \"approve\"],\n            },\n            handler=lambda **kw: STATE.resolve(\n                \"plan\",\n                kw[\"request_id\"],\n                kw[\"approve\"],\n                kw.get(\"feedback\", \"\"),\n            ),\n        ),\n        Tool(\n            name=\"protocol_state\",\n            description=\"Inspect current protocol trackers.\",\n            input_schema={\"type\": \"object\", \"properties\": {}},\n            handler=lambda **kw: STATE.list_all(),\n        ),\n    ]\n)\n\n\ndef run_session(messages: list[dict[str, object]]):\n    return run_loop(\n        client=CLIENT,\n        model=MODEL,\n        system_prompt=SYSTEM,\n        registry=REGISTRY,\n        messages=messages,\n    )\n\n\nif __name__ == \"__main__\":\n    repl(prompt=\"\\033[36ms10 >> \\033[0m\", runner=run_session)\n"
+    },
+    {
+      "id": "s11",
+      "filename": "s11_autonomous_agents.py",
+      "title": "Self-Organizing Workers",
+      "subtitle": "Poll, Claim, Resume",
+      "loc": 172,
+      "tools": [
+        "bash",
+        "read_file",
+        "write_file",
+        "edit_file",
+        "task_create",
+        "task_list",
+        "claim_task",
+        "send_message",
+        "idle"
+      ],
+      "newTools": [
+        "task_create",
+        "task_list",
+        "claim_task",
+        "send_message",
+        "idle"
+      ],
+      "coreAddition": "Idle loop over inbox and task board",
+      "keyInsight": "Autonomy appears when the harness lets agents find work between turns",
+      "classes": [
+        {
+          "name": "TaskBoard",
+          "startLine": 29,
+          "endLine": 72
+        },
+        {
+          "name": "Inbox",
+          "startLine": 73,
+          "endLine": 92
+        }
+      ],
+      "functions": [
+        {
+          "name": "before_request",
+          "signature": "def before_request(messages: list[dict[str, object]])",
+          "startLine": 157
+        },
+        {
+          "name": "run_session",
+          "signature": "def run_session(messages: list[dict[str, object]])",
+          "startLine": 177
+        }
+      ],
+      "layer": "collaboration",
+      "source": "#!/usr/bin/env python3\n# Harness: self-organizing workers -- agents can poll, claim, and resume.\n\"\"\"\ns11_autonomous_agents.py - Self-Organizing Workers\n\nThis chapter updates the old autonomy lesson without pretending that\n\"autonomy\" means magic. The harness supplies:\n\n- an inbox\n- a task board\n- an idle loop\n\nThe model supplies the judgment about what to do next.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport json\nimport threading\nimport time\nfrom pathlib import Path\n\nfrom agents._shared import Tool, ToolRegistry, base_tools, get_model, make_client, repl, run_loop\n\nPOLL_INTERVAL = 5\nIDLE_TIMEOUT = 60\n\n\nclass TaskBoard:\n    def __init__(self, root: Path) -> None:\n        self.root = root / \".lrcc\" / \"autonomy\" / \"tasks\"\n        self.root.mkdir(parents=True, exist_ok=True)\n        self._lock = threading.Lock()\n\n    def create(self, subject: str) -> str:\n        next_id = str(max([0] + [int(path.stem) for path in self.root.glob(\"*.json\") if path.stem.isdigit()]) + 1)\n        task = {\n            \"id\": next_id,\n            \"subject\": subject,\n            \"status\": \"pending\",\n            \"owner\": \"\",\n            \"blocked_by\": [],\n        }\n        (self.root / f\"{next_id}.json\").write_text(json.dumps(task, indent=2), encoding=\"utf-8\")\n        return json.dumps(task, indent=2)\n\n    def unclaimed(self) -> list[dict[str, object]]:\n        tasks = []\n        for path in sorted(self.root.glob(\"*.json\")):\n            task = json.loads(path.read_text(encoding=\"utf-8\"))\n            if task[\"status\"] == \"pending\" and not task[\"owner\"] and not task[\"blocked_by\"]:\n                tasks.append(task)\n        return tasks\n\n    def claim(self, task_id: str, owner: str) -> str:\n        with self._lock:\n            path = self.root / f\"{task_id}.json\"\n            if not path.exists():\n                return f\"Error: task {task_id} not found\"\n            task = json.loads(path.read_text(encoding=\"utf-8\"))\n            if task[\"owner\"]:\n                return f\"Error: task {task_id} already claimed by {task['owner']}\"\n            task[\"owner\"] = owner\n            task[\"status\"] = \"in_progress\"\n            path.write_text(json.dumps(task, indent=2), encoding=\"utf-8\")\n        return json.dumps(task, indent=2)\n\n    def list_all(self) -> str:\n        tasks = [json.loads(path.read_text(encoding=\"utf-8\")) for path in sorted(self.root.glob(\"*.json\"))]\n        return json.dumps(tasks, indent=2) if tasks else \"[]\"\n\n\nclass Inbox:\n    def __init__(self, root: Path) -> None:\n        self.root = root / \".lrcc\" / \"autonomy\" / \"inbox\"\n        self.root.mkdir(parents=True, exist_ok=True)\n\n    def send(self, sender: str, recipient: str, content: str) -> str:\n        path = self.root / f\"{recipient}.jsonl\"\n        with path.open(\"a\", encoding=\"utf-8\") as handle:\n            handle.write(json.dumps({\"from\": sender, \"content\": content, \"ts\": time.time()}) + \"\\n\")\n        return f\"Sent message to {recipient}\"\n\n    def read(self, recipient: str) -> list[dict[str, object]]:\n        path = self.root / f\"{recipient}.jsonl\"\n        if not path.exists():\n            return []\n        rows = [json.loads(line) for line in path.read_text(encoding=\"utf-8\").splitlines() if line.strip()]\n        path.write_text(\"\", encoding=\"utf-8\")\n        return rows\n\n\nWORKDIR = Path.cwd()\nMODEL = get_model()\nCLIENT = make_client()\nTASKS = TaskBoard(WORKDIR)\nINBOX = Inbox(WORKDIR)\nSYSTEM = f\"\"\"You are an autonomous coding agent at {WORKDIR}.\nWhen you have no immediate foreground work, you may idle, poll the inbox,\nclaim an unowned task, and continue.\"\"\"\n\nREGISTRY = ToolRegistry(\n    base_tools(WORKDIR)\n    + [\n        Tool(\n            name=\"task_create\",\n            description=\"Create a task on the shared task board.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\"subject\": {\"type\": \"string\"}},\n                \"required\": [\"subject\"],\n            },\n            handler=lambda **kw: TASKS.create(kw[\"subject\"]),\n        ),\n        Tool(\n            name=\"task_list\",\n            description=\"List the shared task board.\",\n            input_schema={\"type\": \"object\", \"properties\": {}},\n            handler=lambda **kw: TASKS.list_all(),\n        ),\n        Tool(\n            name=\"claim_task\",\n            description=\"Claim a pending task from the board.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\n                    \"task_id\": {\"type\": \"string\"},\n                    \"owner\": {\"type\": \"string\"},\n                },\n                \"required\": [\"task_id\", \"owner\"],\n            },\n            handler=lambda **kw: TASKS.claim(kw[\"task_id\"], kw[\"owner\"]),\n        ),\n        Tool(\n            name=\"send_message\",\n            description=\"Send an inbox message to another agent.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\n                    \"to\": {\"type\": \"string\"},\n                    \"content\": {\"type\": \"string\"},\n                },\n                \"required\": [\"to\", \"content\"],\n            },\n            handler=lambda **kw: INBOX.send(\"lead\", kw[\"to\"], kw[\"content\"]),\n        ),\n        Tool(\n            name=\"idle\",\n            description=\"Yield control so the harness can poll for new work.\",\n            input_schema={\"type\": \"object\", \"properties\": {}},\n            handler=lambda **kw: \"Idle requested. The harness will poll for inbox messages and unclaimed tasks.\",\n        ),\n    ]\n)\n\n\ndef before_request(messages: list[dict[str, object]]) -> None:\n    inbox = INBOX.read(\"lead\")\n    if inbox:\n        messages.append({\"role\": \"user\", \"content\": \"<inbox>\\n\" + json.dumps(inbox, indent=2) + \"\\n</inbox>\"})\n        return\n    pending = TASKS.unclaimed()\n    if pending:\n        first = pending[0]\n        messages.append(\n            {\n                \"role\": \"user\",\n                \"content\": (\n                    \"<auto-claim-opportunity>\\n\"\n                    f\"Unclaimed task #{first['id']}: {first['subject']}\\n\"\n                    \"</auto-claim-opportunity>\"\n                ),\n            }\n        )\n\n\ndef run_session(messages: list[dict[str, object]]):\n    started = time.time()\n    response = run_loop(\n        client=CLIENT,\n        model=MODEL,\n        system_prompt=SYSTEM,\n        registry=REGISTRY,\n        messages=messages,\n        before_request=before_request,\n    )\n    if time.time() - started >= IDLE_TIMEOUT:\n        messages.append(\n            {\n                \"role\": \"user\",\n                \"content\": f\"<idle-timeout>No new work arrived within {IDLE_TIMEOUT}s.</idle-timeout>\",\n            }\n        )\n    else:\n        time.sleep(0 if POLL_INTERVAL <= 0 else 0)\n    return response\n\n\nif __name__ == \"__main__\":\n    repl(prompt=\"\\033[36ms11 >> \\033[0m\", runner=run_session)\n"
+    },
+    {
+      "id": "s12",
+      "filename": "s12_worktree_task_isolation.py",
+      "title": "Worktree Isolation",
+      "subtitle": "Execution Lanes Bound to Tasks",
+      "loc": 219,
+      "tools": [
+        "bash",
+        "read_file",
+        "write_file",
+        "edit_file",
+        "task_create",
+        "task_list",
+        "ensure_worktree",
+        "log_event"
+      ],
+      "newTools": [
+        "ensure_worktree",
+        "log_event"
+      ],
+      "coreAddition": "Task-linked isolation records",
+      "keyInsight": "Task state is the control plane; worktrees isolate execution",
+      "classes": [
+        {
+          "name": "TaskBoard",
+          "startLine": 44,
+          "endLine": 82
+        },
+        {
+          "name": "EventLog",
+          "startLine": 83,
+          "endLine": 99
+        },
+        {
+          "name": "WorktreeStore",
+          "startLine": 100,
+          "endLine": 166
+        }
+      ],
+      "functions": [
+        {
+          "name": "detect_repo_root",
+          "signature": "def detect_repo_root(cwd: Path)",
+          "startLine": 27
+        },
+        {
+          "name": "run_session",
+          "signature": "def run_session(messages: list[dict[str, object]])",
+          "startLine": 242
+        }
+      ],
+      "layer": "collaboration",
+      "source": "#!/usr/bin/env python3\n# Harness: execution isolation -- worktrees separate where tasks run.\n\"\"\"\ns12_worktree_task_isolation.py - Worktree Isolation\n\nThe last chapter keeps the core lesson:\ntasks are control-plane state; isolation decides where execution happens.\n\nThis version teaches three linked records:\n\n- task record\n- worktree record\n- lifecycle event log\n\"\"\"\n\nfrom __future__ import annotations\n\nimport json\nimport shutil\nimport subprocess\nimport time\nfrom pathlib import Path\n\nfrom agents._shared import Tool, ToolRegistry, base_tools, get_model, make_client, repl, run_loop\n\n\ndef detect_repo_root(cwd: Path) -> Path | None:\n    try:\n        result = subprocess.run(\n            [\"git\", \"rev-parse\", \"--show-toplevel\"],\n            cwd=cwd,\n            capture_output=True,\n            text=True,\n            timeout=10,\n        )\n    except Exception:\n        return None\n    if result.returncode != 0:\n        return None\n    root = Path(result.stdout.strip())\n    return root if root.exists() else None\n\n\nclass TaskBoard:\n    def __init__(self, root: Path) -> None:\n        self.root = root / \".lrcc\" / \"isolation\" / \"tasks\"\n        self.root.mkdir(parents=True, exist_ok=True)\n\n    def create(self, subject: str) -> dict[str, object]:\n        next_id = str(max([0] + [int(path.stem) for path in self.root.glob(\"*.json\") if path.stem.isdigit()]) + 1)\n        task = {\n            \"id\": next_id,\n            \"subject\": subject,\n            \"status\": \"pending\",\n            \"worktree\": \"\",\n        }\n        (self.root / f\"{next_id}.json\").write_text(json.dumps(task, indent=2), encoding=\"utf-8\")\n        return task\n\n    def bind(self, task_id: str, worktree_name: str) -> dict[str, object]:\n        path = self.root / f\"{task_id}.json\"\n        if not path.exists():\n            raise ValueError(f\"Task {task_id} not found\")\n        task = json.loads(path.read_text(encoding=\"utf-8\"))\n        task[\"worktree\"] = worktree_name\n        if task[\"status\"] == \"pending\":\n            task[\"status\"] = \"in_progress\"\n        path.write_text(json.dumps(task, indent=2), encoding=\"utf-8\")\n        return task\n\n    def complete(self, task_id: str) -> dict[str, object]:\n        path = self.root / f\"{task_id}.json\"\n        task = json.loads(path.read_text(encoding=\"utf-8\"))\n        task[\"status\"] = \"completed\"\n        path.write_text(json.dumps(task, indent=2), encoding=\"utf-8\")\n        return task\n\n    def list_all(self) -> str:\n        tasks = [json.loads(path.read_text(encoding=\"utf-8\")) for path in sorted(self.root.glob(\"*.json\"))]\n        return json.dumps(tasks, indent=2) if tasks else \"[]\"\n\n\nclass EventLog:\n    def __init__(self, path: Path) -> None:\n        self.path = path\n        self.path.parent.mkdir(parents=True, exist_ok=True)\n        if not self.path.exists():\n            self.path.write_text(\"\", encoding=\"utf-8\")\n\n    def emit(self, event: str, **payload: object) -> None:\n        record = {\"event\": event, \"ts\": time.time(), **payload}\n        with self.path.open(\"a\", encoding=\"utf-8\") as handle:\n            handle.write(json.dumps(record) + \"\\n\")\n\n    def recent(self, limit: int = 20) -> str:\n        lines = self.path.read_text(encoding=\"utf-8\").splitlines()[-limit:]\n        return json.dumps([json.loads(line) for line in lines], indent=2) if lines else \"[]\"\n\n\nclass WorktreeStore:\n    def __init__(self, repo_root: Path, tasks: TaskBoard, events: EventLog) -> None:\n        self.repo_root = repo_root\n        self.base = repo_root / \".lrcc\" / \"isolation\" / \"worktrees\"\n        self.base.mkdir(parents=True, exist_ok=True)\n        self.index_path = self.base / \"index.json\"\n        self.tasks = tasks\n        self.events = events\n\n    def _load_index(self) -> dict[str, object]:\n        if self.index_path.exists():\n            return json.loads(self.index_path.read_text(encoding=\"utf-8\"))\n        return {\"worktrees\": []}\n\n    def _save_index(self, data: dict[str, object]) -> None:\n        self.index_path.write_text(json.dumps(data, indent=2), encoding=\"utf-8\")\n\n    def create(self, name: str, task_id: str | None = None) -> str:\n        worktree_path = self.base / name\n        self.events.emit(\"worktree.create.before\", name=name, task_id=task_id)\n        if not worktree_path.exists():\n            if detect_repo_root(self.repo_root):\n                subprocess.run(\n                    [\"git\", \"worktree\", \"add\", str(worktree_path), \"-b\", f\"wt/{name}\"],\n                    cwd=self.repo_root,\n                    capture_output=True,\n                    text=True,\n                    timeout=30,\n                )\n            else:\n                worktree_path.mkdir(parents=True, exist_ok=True)\n        index = self._load_index()\n        record = {\n            \"name\": name,\n            \"path\": str(worktree_path),\n            \"branch\": f\"wt/{name}\",\n            \"task_id\": task_id,\n            \"status\": \"active\",\n        }\n        index[\"worktrees\"] = [item for item in index[\"worktrees\"] if item[\"name\"] != name] + [record]\n        self._save_index(index)\n        if task_id:\n            self.tasks.bind(task_id, name)\n        self.events.emit(\"worktree.create.after\", worktree=record)\n        return json.dumps(record, indent=2)\n\n    def remove(self, name: str, complete_task: bool = False) -> str:\n        index = self._load_index()\n        record = next((item for item in index[\"worktrees\"] if item[\"name\"] == name), None)\n        if record is None:\n            return f\"Error: worktree {name} not found\"\n        self.events.emit(\"worktree.remove.before\", worktree=record)\n        worktree_path = Path(record[\"path\"])\n        if worktree_path.exists() and worktree_path.is_dir():\n            shutil.rmtree(worktree_path)\n        record[\"status\"] = \"removed\"\n        self._save_index(index)\n        if complete_task and record.get(\"task_id\"):\n            task = self.tasks.complete(str(record[\"task_id\"]))\n            self.events.emit(\"task.completed\", task=task)\n        self.events.emit(\"worktree.remove.after\", worktree=record)\n        return json.dumps(record, indent=2)\n\n    def list_all(self) -> str:\n        return json.dumps(self._load_index(), indent=2)\n\n\nWORKDIR = Path.cwd()\nREPO_ROOT = detect_repo_root(WORKDIR) or WORKDIR\nMODEL = get_model()\nCLIENT = make_client()\nTASKS = TaskBoard(REPO_ROOT)\nEVENTS = EventLog(REPO_ROOT / \".lrcc\" / \"isolation\" / \"events.jsonl\")\nWORKTREES = WorktreeStore(REPO_ROOT, TASKS, EVENTS)\nSYSTEM = f\"\"\"You are a coding agent at {WORKDIR}.\nUse task_create for the control plane and worktree_create for execution isolation.\nKeep task identity and worktree identity linked.\"\"\"\n\nREGISTRY = ToolRegistry(\n    base_tools(WORKDIR)\n    + [\n        Tool(\n            name=\"task_create\",\n            description=\"Create a task before allocating an isolation lane.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\"subject\": {\"type\": \"string\"}},\n                \"required\": [\"subject\"],\n            },\n            handler=lambda **kw: json.dumps(TASKS.create(kw[\"subject\"]), indent=2),\n        ),\n        Tool(\n            name=\"task_list\",\n            description=\"List task records.\",\n            input_schema={\"type\": \"object\", \"properties\": {}},\n            handler=lambda **kw: TASKS.list_all(),\n        ),\n        Tool(\n            name=\"worktree_create\",\n            description=\"Create an isolated execution lane and optionally bind it to a task.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\n                    \"name\": {\"type\": \"string\"},\n                    \"task_id\": {\"type\": \"string\"},\n                },\n                \"required\": [\"name\"],\n            },\n            handler=lambda **kw: WORKTREES.create(kw[\"name\"], kw.get(\"task_id\")),\n        ),\n        Tool(\n            name=\"worktree_remove\",\n            description=\"Remove an isolated execution lane.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\n                    \"name\": {\"type\": \"string\"},\n                    \"complete_task\": {\"type\": \"boolean\"},\n                },\n                \"required\": [\"name\"],\n            },\n            handler=lambda **kw: WORKTREES.remove(kw[\"name\"], kw.get(\"complete_task\", False)),\n        ),\n        Tool(\n            name=\"worktree_list\",\n            description=\"List isolation lanes.\",\n            input_schema={\"type\": \"object\", \"properties\": {}},\n            handler=lambda **kw: WORKTREES.list_all(),\n        ),\n        Tool(\n            name=\"worktree_events\",\n            description=\"Inspect lifecycle events for isolation lanes.\",\n            input_schema={\n                \"type\": \"object\",\n                \"properties\": {\"limit\": {\"type\": \"integer\"}},\n            },\n            handler=lambda **kw: EVENTS.recent(int(kw.get(\"limit\", 20))),\n        ),\n    ]\n)\n\n\ndef run_session(messages: list[dict[str, object]]):\n    return run_loop(\n        client=CLIENT,\n        model=MODEL,\n        system_prompt=SYSTEM,\n        registry=REGISTRY,\n        messages=messages,\n    )\n\n\nif __name__ == \"__main__\":\n    repl(prompt=\"\\033[36ms12 >> \\033[0m\", runner=run_session)\n"
+    }
+  ],
+  "diffs": [
+    {
+      "from": "s01",
+      "to": "s02",
+      "newClasses": [],
+      "newFunctions": [],
+      "newTools": [
+        "read_file",
+        "write_file",
+        "edit_file"
+      ],
+      "locDelta": 2
+    },
+    {
+      "from": "s02",
+      "to": "s03",
+      "newClasses": [
+        "TodoManager"
+      ],
+      "newFunctions": [],
+      "newTools": [
+        "todo_write"
+      ],
+      "locDelta": 74
+    },
+    {
+      "from": "s03",
+      "to": "s04",
+      "newClasses": [
+        "DelegationRunner"
+      ],
+      "newFunctions": [],
+      "newTools": [
+        "delegate"
+      ],
+      "locDelta": 2
+    },
+    {
+      "from": "s04",
+      "to": "s05",
+      "newClasses": [
+        "Skill",
+        "SkillLoader"
+      ],
+      "newFunctions": [],
+      "newTools": [
+        "load_skill"
+      ],
+      "locDelta": 46
+    },
+    {
+      "from": "s05",
+      "to": "s06",
+      "newClasses": [
+        "ContextManager"
+      ],
+      "newFunctions": [
+        "compact_handler",
+        "before_request"
+      ],
+      "newTools": [
+        "compact"
+      ],
+      "locDelta": -34
+    },
+    {
+      "from": "s06",
+      "to": "s07",
+      "newClasses": [
+        "TaskStore"
+      ],
+      "newFunctions": [],
+      "newTools": [
+        "task_create",
+        "task_get",
+        "task_list",
+        "task_update"
+      ],
+      "locDelta": 62
+    },
+    {
+      "from": "s07",
+      "to": "s08",
+      "newClasses": [
+        "BackgroundManager"
+      ],
+      "newFunctions": [
+        "before_request"
+      ],
+      "newTools": [
+        "background_run",
+        "background_check"
+      ],
+      "locDelta": -50
+    },
+    {
+      "from": "s08",
+      "to": "s09",
+      "newClasses": [
+        "MailboxBus",
+        "TeamManager"
+      ],
+      "newFunctions": [],
+      "newTools": [
+        "team_spawn",
+        "send_message",
+        "read_inbox",
+        "team_list"
+      ],
+      "locDelta": 61
+    },
+    {
+      "from": "s09",
+      "to": "s10",
+      "newClasses": [
+        "ProtocolState"
+      ],
+      "newFunctions": [],
+      "newTools": [
+        "request_plan",
+        "respond_plan",
+        "request_shutdown",
+        "poll_protocols"
+      ],
+      "locDelta": -47
+    },
+    {
+      "from": "s10",
+      "to": "s11",
+      "newClasses": [
+        "TaskBoard",
+        "Inbox"
+      ],
+      "newFunctions": [
+        "before_request"
+      ],
+      "newTools": [
+        "task_create",
+        "task_list",
+        "claim_task",
+        "send_message",
+        "idle"
+      ],
+      "locDelta": 27
+    },
+    {
+      "from": "s11",
+      "to": "s12",
+      "newClasses": [
+        "EventLog",
+        "WorktreeStore"
+      ],
+      "newFunctions": [
+        "detect_repo_root"
+      ],
+      "newTools": [
+        "ensure_worktree",
+        "log_event"
+      ],
+      "locDelta": 47
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "version": "s12",
+  "decisions": [
+    {
+      "id": "files-follow-work",
+      "title": "Let Filesystem Isolation Follow Task Ownership",
+      "description": "Worktree isolation is presented as a first-class runtime capability. A task can claim not just responsibility, but also an isolated filesystem view where its changes live.",
+      "alternatives": "A single shared checkout is simpler, but it makes concurrent edits collide and weakens the boundary between independent workstreams.",
+      "zh": {
+        "title": "让文件系统隔离跟着任务归属走",
+        "description": "worktree 隔离被提升为正式运行时能力。任务不仅能声明负责范围，还能拥有自己隔离的文件视图。"
+      },
+      "ja": {
+        "title": "ファイルシステム隔離をタスク所有権に追随させる",
+        "description": "worktree 分離を一級のランタイム機能として扱い、タスクごとに独立したファイル視点を持たせます。"
+      }
+    },
+    {
+      "id": "audit-log",
+      "title": "Pair Isolation With An Event Log",
+      "description": "Isolation is much easier to trust when each task also records lifecycle events. The event log turns separate workspaces into an inspectable system instead of hidden branches.",
+      "alternatives": "Worktrees alone isolate files, but they do not explain what happened or why a workspace exists.",
+      "zh": {
+        "title": "把隔离和事件日志配套起来",
+        "description": "只有当每个任务同时记录生命周期事件时，隔离能力才真正可信。事件日志让这些独立工作区变成可检查系统。"
+      },
+      "ja": {
+        "title": "隔離にはイベントログを組み合わせる",
+        "description": "各タスクがライフサイクルイベントを記録してこそ、分離された作業空間を信頼しやすくなります。"
+      }
+    }
+  ]
+}

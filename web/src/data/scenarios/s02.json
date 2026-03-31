@@ -1,0 +1,41 @@
+{
+  "version": "s02",
+  "title": "Tool Protocol",
+  "description": "The loop stays fixed while tools become structured and specialized.",
+  "steps": [
+    {
+      "type": "user_message",
+      "content": "Open README.md and fix the first heading if it is outdated.",
+      "annotation": "The request naturally mixes read and write operations."
+    },
+    {
+      "type": "tool_call",
+      "content": "{\"path\":\"README.md\"}",
+      "toolName": "read_file",
+      "annotation": "The model now has a dedicated file-reading tool."
+    },
+    {
+      "type": "tool_result",
+      "content": "# Old Course Title",
+      "toolName": "read_file",
+      "annotation": "Structured tool results are easier to interpret than arbitrary shell output."
+    },
+    {
+      "type": "tool_call",
+      "content": "{\"path\":\"README.md\",\"old_text\":\"# Old Course Title\",\"new_text\":\"# Learn Real Claude Code\"}",
+      "toolName": "edit_file",
+      "annotation": "The registry dispatches the request to a specialized editor."
+    },
+    {
+      "type": "tool_result",
+      "content": "Edited README.md",
+      "toolName": "edit_file",
+      "annotation": "The loop did not change; only the tool pool expanded."
+    },
+    {
+      "type": "assistant_text",
+      "content": "The heading is updated, and the change stayed narrowly scoped because the tool matched the intent.",
+      "annotation": "Tool protocol is the extensibility layer."
+    }
+  ]
+}

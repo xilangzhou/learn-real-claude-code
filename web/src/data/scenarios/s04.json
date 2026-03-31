@@ -1,0 +1,41 @@
+{
+  "version": "s04",
+  "title": "Delegation Modes",
+  "description": "Delegation can start from a clean room or inherit the parent context.",
+  "steps": [
+    {
+      "type": "user_message",
+      "content": "Investigate the parser bug, and keep my earlier naming decisions in mind.",
+      "annotation": "The task may or may not need prior context."
+    },
+    {
+      "type": "tool_call",
+      "content": "{\"mode\":\"fresh\",\"task\":\"Inspect parser.py and report the likely bug.\"}",
+      "toolName": "delegate",
+      "annotation": "Fresh delegation isolates the child from the parent transcript."
+    },
+    {
+      "type": "tool_result",
+      "content": "Fresh worker summary: parser.py assumes comma-separated input and crashes on tabs.",
+      "toolName": "delegate",
+      "annotation": "A clean-room worker returns only the useful summary."
+    },
+    {
+      "type": "tool_call",
+      "content": "{\"mode\":\"fork\",\"task\":\"Patch the parser bug while preserving the naming conventions we already chose.\"}",
+      "toolName": "delegate",
+      "annotation": "Forked delegation inherits the parent conversation and its decisions."
+    },
+    {
+      "type": "tool_result",
+      "content": "Forked worker summary: parser now accepts tabs and kept the established token names.",
+      "toolName": "delegate",
+      "annotation": "Inheritance matters when the child must respect prior context."
+    },
+    {
+      "type": "assistant_text",
+      "content": "Fresh delegation was enough for diagnosis; forked delegation was better for context-sensitive implementation.",
+      "annotation": "The chapter teaches delegation strategy, not just delegation existence."
+    }
+  ]
+}

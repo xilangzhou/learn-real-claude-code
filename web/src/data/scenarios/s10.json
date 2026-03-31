@@ -1,0 +1,41 @@
+{
+  "version": "s10",
+  "title": "Team Protocols",
+  "description": "Requests between workers become typed coordination protocols.",
+  "steps": [
+    {
+      "type": "user_message",
+      "content": "Ask the reviewer to approve the implementation plan before we start changing files.",
+      "annotation": "This needs more structure than an informal note."
+    },
+    {
+      "type": "tool_call",
+      "content": "{\"to\":\"reviewer\",\"plan\":\"Update chapter order, rewrite docs, regenerate metadata\"}",
+      "toolName": "request_plan",
+      "annotation": "The request is sent as a typed protocol with a tracked id."
+    },
+    {
+      "type": "tool_result",
+      "content": "Created plan request req-7 for reviewer",
+      "toolName": "request_plan",
+      "annotation": "The lifecycle begins in a pending state."
+    },
+    {
+      "type": "tool_call",
+      "content": "{}",
+      "toolName": "poll_protocols",
+      "annotation": "The runtime checks whether any tracked requests changed state."
+    },
+    {
+      "type": "tool_result",
+      "content": "req-7 approved by reviewer",
+      "toolName": "poll_protocols",
+      "annotation": "The protocol state machine updates independently of casual chat."
+    },
+    {
+      "type": "assistant_text",
+      "content": "The implementation plan is now formally approved, so file changes can begin.",
+      "annotation": "Typed protocols turn coordination into something the harness can reason about."
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "version": "s04",
+  "decisions": [
+    {
+      "id": "two-delegation-modes",
+      "title": "Teach Fresh And Forked Delegation Separately",
+      "description": "Delegation is not a single pattern. A fresh worker is good for narrow isolated work, while a forked worker inherits context and is better when prior decisions matter.",
+      "alternatives": "Describing every subagent as a clean room is simpler, but it becomes misleading once inherited-context delegation appears.",
+      "zh": {
+        "title": "把 fresh 和 fork 两种委托模式分开讲",
+        "description": "委托并不是单一模式。fresh 适合窄任务隔离，fork 则适合需要继承既有上下文和决策的场景。"
+      },
+      "ja": {
+        "title": "fresh と fork の委任を分けて教える",
+        "description": "委任は一つの型ではありません。fresh は狭い隔離作業向きで、fork は過去の判断を引き継ぐ必要がある場合に向いています。"
+      }
+    },
+    {
+      "id": "summary-return",
+      "title": "Return A Summary Instead Of Full Child Transcript",
+      "description": "The parent only needs the useful outcome of delegated work. Returning a concise summary keeps the parent context stable and avoids replaying the entire child conversation.",
+      "alternatives": "Inlining the child transcript preserves detail, but it quickly pollutes the parent context window.",
+      "zh": {
+        "title": "子任务返回摘要，而不是完整对话",
+        "description": "父 agent 真正需要的是有用结果，而不是完整子对话。摘要返回可以控制上下文膨胀。"
+      },
+      "ja": {
+        "title": "子ワーカーは全文ではなく要約を返す",
+        "description": "親エージェントに必要なのは有用な結果であり、子会話の全文ではありません。要約返却でコンテキスト膨張を抑えます。"
+      }
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "version": "s06",
+  "title": "Context Management Stack",
+  "description": "Different context problems are handled by different tactics.",
+  "steps": [
+    {
+      "type": "user_message",
+      "content": "Keep working, but the session is getting long. Preserve the important decisions and trim the noise.",
+      "annotation": "This is a context-management request, not a single tool action."
+    },
+    {
+      "type": "system_event",
+      "content": "Tool result budget trims a large shell output to a short summary.",
+      "annotation": "The first layer prevents oversized results from dominating context."
+    },
+    {
+      "type": "system_event",
+      "content": "Rolling summary updated: parser fixed, tests still pending, naming conventions preserved.",
+      "annotation": "A second layer preserves continuity across many turns."
+    },
+    {
+      "type": "tool_call",
+      "content": "{\"focus\":\"keep the parser fix, pending tests, and naming decisions\"}",
+      "toolName": "compact",
+      "annotation": "The model can still explicitly request a manual compact when needed."
+    },
+    {
+      "type": "tool_result",
+      "content": "Compacted conversation around the requested focus areas.",
+      "toolName": "compact",
+      "annotation": "Manual compact is the escape hatch above the automatic layers."
+    },
+    {
+      "type": "assistant_text",
+      "content": "The important decisions are preserved, and the noisy context has been reduced.",
+      "annotation": "This chapter is about a stack of tactics, not one compression pass."
+    }
+  ]
+}

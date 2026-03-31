@@ -1,0 +1,41 @@
+{
+  "version": "s07",
+  "title": "Persistent Task Runtime",
+  "description": "Durable tasks live outside the chat transcript.",
+  "steps": [
+    {
+      "type": "user_message",
+      "content": "Create a durable task list for the docs overhaul and show me what is open.",
+      "annotation": "The request targets long-lived runtime state."
+    },
+    {
+      "type": "tool_call",
+      "content": "{\"title\":\"Rewrite onboarding section\",\"details\":\"Align docs with new chapter sequence\"}",
+      "toolName": "task_create",
+      "annotation": "A persistent task is created in task storage, not only in chat."
+    },
+    {
+      "type": "tool_result",
+      "content": "Created task task-1 [open] Rewrite onboarding section",
+      "toolName": "task_create",
+      "annotation": "The task now has its own durable identity."
+    },
+    {
+      "type": "tool_call",
+      "content": "{}",
+      "toolName": "task_list",
+      "annotation": "The model queries the persistent store directly."
+    },
+    {
+      "type": "tool_result",
+      "content": "task-1 | open | Rewrite onboarding section",
+      "toolName": "task_list",
+      "annotation": "Durable work can be inspected independently of transcript length."
+    },
+    {
+      "type": "assistant_text",
+      "content": "The docs overhaul now exists as persistent runtime state, separate from the session checklist.",
+      "annotation": "This separates durable work tracking from temporary session planning."
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "version": "s09",
+  "title": "Team Mailboxes",
+  "description": "Named workers coordinate through explicit message passing.",
+  "steps": [
+    {
+      "type": "user_message",
+      "content": "Spawn a docs worker and ask it to review the new onboarding section.",
+      "annotation": "The lead agent coordinates work instead of doing everything directly."
+    },
+    {
+      "type": "tool_call",
+      "content": "{\"name\":\"docs-worker\",\"role\":\"Review documentation changes\"}",
+      "toolName": "team_spawn",
+      "annotation": "A named worker is created as part of the team runtime."
+    },
+    {
+      "type": "tool_result",
+      "content": "Spawned docs-worker",
+      "toolName": "team_spawn",
+      "annotation": "Stable identities make later routing possible."
+    },
+    {
+      "type": "tool_call",
+      "content": "{\"to\":\"docs-worker\",\"message\":\"Review onboarding changes and send back risks.\"}",
+      "toolName": "send_message",
+      "annotation": "Communication travels through an explicit mailbox primitive."
+    },
+    {
+      "type": "tool_result",
+      "content": "Queued message for docs-worker",
+      "toolName": "send_message",
+      "annotation": "The runtime records who sent what to whom."
+    },
+    {
+      "type": "tool_call",
+      "content": "{}",
+      "toolName": "read_inbox",
+      "annotation": "Workers and leads inspect inboxes instead of assuming shared hidden state."
+    },
+    {
+      "type": "tool_result",
+      "content": "docs-worker: Risk noted — onboarding still mentions the old chapter order.",
+      "toolName": "read_inbox",
+      "annotation": "Collaboration remains inspectable and replayable."
+    },
+    {
+      "type": "assistant_text",
+      "content": "The docs worker replied through its mailbox, and the remaining risk is now visible to the lead.",
+      "annotation": "Team coordination is modeled as explicit communication."
+    }
+  ]
+}

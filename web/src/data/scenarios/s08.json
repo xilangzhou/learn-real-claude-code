@@ -1,0 +1,46 @@
+{
+  "version": "s08",
+  "title": "Background Runtime",
+  "description": "Long-running work gets explicit ids, polling, and notifications.",
+  "steps": [
+    {
+      "type": "user_message",
+      "content": "Run the slow test suite in the background and tell me when it finishes.",
+      "annotation": "The user wants progress without blocking the main thread."
+    },
+    {
+      "type": "tool_call",
+      "content": "{\"command\":\"pytest tests/slow_suite.py\"}",
+      "toolName": "background_run",
+      "annotation": "The task is handed to the background runtime."
+    },
+    {
+      "type": "tool_result",
+      "content": "Started background task bg-1",
+      "toolName": "background_run",
+      "annotation": "The foreground loop receives a handle it can refer to later."
+    },
+    {
+      "type": "tool_call",
+      "content": "{\"task_id\":\"bg-1\"}",
+      "toolName": "background_check",
+      "annotation": "The model can poll the long-running task explicitly."
+    },
+    {
+      "type": "tool_result",
+      "content": "bg-1 is still running",
+      "toolName": "background_check",
+      "annotation": "Polling keeps background state legible."
+    },
+    {
+      "type": "system_event",
+      "content": "Background notification: bg-1 completed successfully.",
+      "annotation": "Completion is reinjected into the main loop."
+    },
+    {
+      "type": "assistant_text",
+      "content": "The background suite finished, and I can now use its result in the next step.",
+      "annotation": "Background work becomes part of foreground reasoning once notified."
+    }
+  ]
+}

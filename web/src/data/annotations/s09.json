@@ -1,0 +1,33 @@
+{
+  "version": "s09",
+  "decisions": [
+    {
+      "id": "mailboxes-first",
+      "title": "Model Teamwork Around Mailboxes, Not Magic Shared Thought",
+      "description": "Named workers coordinate through inboxes and explicit messages. This keeps collaboration inspectable and avoids pretending that multiple agents share an invisible global mind.",
+      "alternatives": "Shared mutable state alone is shorter to demo, but it hides who said what and makes coordination failures harder to debug.",
+      "zh": {
+        "title": "团队协作先建模为邮箱，而不是神秘共享思维",
+        "description": "命名 worker 通过收件箱和显式消息协作，这样协作过程可检查，也不会假装多个 agent 共享一个不可见的大脑。"
+      },
+      "ja": {
+        "title": "チーム協調は魔法の共有思考ではなくメールボックスで表す",
+        "description": "名前付きワーカーは受信箱と明示メッセージで協調します。これにより協調過程を観測でき、誰が何を言ったかを失いません。"
+      }
+    },
+    {
+      "id": "named-workers",
+      "title": "Give Workers Stable Identities",
+      "description": "Stable names make message routing, responsibility, and debugging much clearer than anonymous one-off child loops.",
+      "alternatives": "Anonymous workers reduce bookkeeping, but they make persistent collaboration patterns hard to express.",
+      "zh": {
+        "title": "给 worker 稳定身份",
+        "description": "稳定命名会让消息路由、职责边界和调试过程都更清晰。"
+      },
+      "ja": {
+        "title": "ワーカーに安定した識別子を与える",
+        "description": "安定した名前があると、メッセージルーティング、責任分担、デバッグがずっと明確になります。"
+      }
+    }
+  ]
+}

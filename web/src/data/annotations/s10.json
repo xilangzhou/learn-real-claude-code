@@ -1,0 +1,33 @@
+{
+  "version": "s10",
+  "decisions": [
+    {
+      "id": "typed-protocols",
+      "title": "Turn Team Messages Into Typed Protocols",
+      "description": "Requests like plan approval or shutdown are tracked with request ids and explicit response states. This turns loose chat into process the harness can reason about.",
+      "alternatives": "Free-form text messages are enough for a toy demo, but they make it hard to distinguish requests from normal discussion.",
+      "zh": {
+        "title": "把团队消息升级成类型化协议",
+        "description": "计划审批、关闭请求这类动作都带 request id 和状态流转，协作消息不再只是松散聊天，而是可推理流程。"
+      },
+      "ja": {
+        "title": "チームメッセージを型付きプロトコルにする",
+        "description": "計画承認や終了要求は request id と状態遷移で管理し、単なる雑談ではなくハーネスが理解できるプロセスにします。"
+      }
+    },
+    {
+      "id": "lifecycle-tracking",
+      "title": "Track The Lifecycle Of Each Coordination Request",
+      "description": "A request is not done when it is sent. The runtime needs to remember whether it is pending, approved, rejected, or already consumed.",
+      "alternatives": "Stateless requests reduce code, but they make retries, timeouts, and debugging much harder.",
+      "zh": {
+        "title": "跟踪每个协调请求的生命周期",
+        "description": "请求不是发出去就结束了，运行时还需要知道它是 pending、approved、rejected 还是已消费。"
+      },
+      "ja": {
+        "title": "協調リクエストごとのライフサイクルを追跡する",
+        "description": "要求は送った瞬間に終わりません。pending、approved、rejected、consumed を追跡する必要があります。"
+      }
+    }
+  ]
+}

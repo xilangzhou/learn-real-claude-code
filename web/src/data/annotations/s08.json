@@ -1,0 +1,33 @@
+{
+  "version": "s08",
+  "decisions": [
+    {
+      "id": "handles-for-background-work",
+      "title": "Background Work Needs Explicit Handles",
+      "description": "Long-running tasks are only usable if the foreground agent can refer to them later by id, poll them, and surface notifications when they finish.",
+      "alternatives": "Fire-and-forget threads are easy to start, but they give the agent no safe way to reason about unfinished work.",
+      "zh": {
+        "title": "后台任务必须有可引用的句柄",
+        "description": "长任务只有在前台 agent 能按 id 查询、轮询并接收完成通知时才真正可用。"
+      },
+      "ja": {
+        "title": "バックグラウンド作業には参照ハンドルが必要",
+        "description": "長時間実行タスクは、前景エージェントが id で参照し、状態確認し、完了通知を受け取れるときに初めて実用的になります。"
+      }
+    },
+    {
+      "id": "notifications-into-main-loop",
+      "title": "Completion Signals Must Re-Enter The Main Loop",
+      "description": "The harness appends notifications back into the active conversation so background progress can influence the next foreground decision.",
+      "alternatives": "Keeping background results in a side table is possible, but the model will not naturally react unless the harness reintroduces them.",
+      "zh": {
+        "title": "后台完成信号要重新回到主循环",
+        "description": "后台进度必须重新注入当前对话，这样前台模型的下一步决策才能真正利用这些结果。"
+      },
+      "ja": {
+        "title": "完了通知はメインループへ戻す",
+        "description": "バックグラウンド結果は会話に再注入されてこそ、次の前景判断に影響を与えられます。"
+      }
+    }
+  ]
+}

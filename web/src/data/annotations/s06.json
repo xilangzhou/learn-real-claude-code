@@ -1,0 +1,33 @@
+{
+  "version": "s06",
+  "decisions": [
+    {
+      "id": "stack-not-single-pass",
+      "title": "Treat Context Management As A Stack Of Tactics",
+      "description": "This chapter replaces the old single compression story with multiple layers: trimming oversized tool results, carrying rolling summaries, and allowing explicit manual compact steps.",
+      "alternatives": "A single compact button is easy to explain, but it confuses very different context problems under one label.",
+      "zh": {
+        "title": "把上下文管理讲成一组策略栈",
+        "description": "这一章不再把压缩讲成单一动作，而是区分结果裁剪、滚动摘要和手动 compact 等不同策略。"
+      },
+      "ja": {
+        "title": "コンテキスト管理を戦術のスタックとして扱う",
+        "description": "結果の刈り込み、ローリング要約、明示的な compact など、異なる文脈問題に異なる手段を用います。"
+      }
+    },
+    {
+      "id": "manual-compact-stays",
+      "title": "Keep A Manual Compact Escape Hatch",
+      "description": "Automatic heuristics help, but the model also needs an explicit way to ask for a reset when it recognizes its own context has become noisy.",
+      "alternatives": "Purely automatic compression is simpler, but it removes a useful self-repair tool from the agent.",
+      "zh": {
+        "title": "保留手动 compact 这个逃生口",
+        "description": "自动策略很重要，但模型也需要在自觉上下文已变脏时主动请求收缩。"
+      },
+      "ja": {
+        "title": "手動 compact の逃げ道を残す",
+        "description": "自動ヒューリスティクスだけでなく、文脈が汚れたとモデル自身が判断したときの自己修復手段も残します。"
+      }
+    }
+  ]
+}

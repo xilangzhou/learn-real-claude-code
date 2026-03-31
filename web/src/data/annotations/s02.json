@@ -1,0 +1,33 @@
+{
+  "version": "s02",
+  "decisions": [
+    {
+      "id": "protocolized-tools",
+      "title": "Grow Capability By Adding Tools, Not Rewriting The Loop",
+      "description": "The loop stays the same while the registry expands from bash to read, write, and edit primitives. This teaches that tool schemas and dispatch are the stable extension point.",
+      "alternatives": "Inlining tool logic inside the loop looks shorter at first, but it makes every new capability a control-flow change instead of a protocol addition.",
+      "zh": {
+        "title": "通过加工具扩能力，而不是重写循环",
+        "description": "循环本身保持不变，只把注册表从 bash 扩展到读写编辑工具。这样更能说明稳定的扩展点其实是工具协议。"
+      },
+      "ja": {
+        "title": "ループを書き換えずツール追加で能力を伸ばす",
+        "description": "ループ自体は変えず、登録表を bash から read/write/edit に広げます。安定した拡張点はツールプロトコルだと教えるためです。"
+      }
+    },
+    {
+      "id": "specialized-file-tools",
+      "title": "Prefer Specialized File Tools Over Shell Tricks",
+      "description": "Dedicated file tools make intent explicit and easier to constrain. They are easier to validate, explain, and eventually permission-gate than arbitrary shell commands.",
+      "alternatives": "Pure bash can do everything, but it collapses many different intents into one opaque command surface.",
+      "zh": {
+        "title": "优先使用专门文件工具，而不是 shell 小技巧",
+        "description": "专门的文件工具会让意图更清晰，也更容易做校验、解释和权限控制。"
+      },
+      "ja": {
+        "title": "シェル技巧より専用ファイルツールを優先する",
+        "description": "専用ファイルツールは意図を明示しやすく、検証や説明、将来的な権限制御も行いやすくなります。"
+      }
+    }
+  ]
+}

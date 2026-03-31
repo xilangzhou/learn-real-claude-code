@@ -1,0 +1,41 @@
+{
+  "version": "s12",
+  "title": "Worktree Isolation",
+  "description": "Task ownership now includes an isolated filesystem and audit trail.",
+  "steps": [
+    {
+      "type": "user_message",
+      "content": "Give the refactor task its own isolated workspace and log the handoff.",
+      "annotation": "This request touches both filesystem isolation and runtime observability."
+    },
+    {
+      "type": "tool_call",
+      "content": "{\"task_id\":\"task-9\",\"branch\":\"task-9-refactor\"}",
+      "toolName": "ensure_worktree",
+      "annotation": "The runtime provisions a dedicated workspace for that task."
+    },
+    {
+      "type": "tool_result",
+      "content": "task-9 mapped to worktree .lrcc/worktrees/task-9-refactor",
+      "toolName": "ensure_worktree",
+      "annotation": "Task ownership now includes a separate filesystem view."
+    },
+    {
+      "type": "tool_call",
+      "content": "{\"task_id\":\"task-9\",\"event\":\"handoff\",\"details\":\"Assigned isolated workspace to the refactor task\"}",
+      "toolName": "log_event",
+      "annotation": "The event log records why the isolated workspace exists."
+    },
+    {
+      "type": "tool_result",
+      "content": "Logged event for task-9",
+      "toolName": "log_event",
+      "annotation": "Isolation is paired with an audit trail."
+    },
+    {
+      "type": "assistant_text",
+      "content": "The refactor task now has its own workspace and a recorded lifecycle event describing the handoff.",
+      "annotation": "Isolation becomes a first-class runtime capability instead of an ad hoc trick."
+    }
+  ]
+}

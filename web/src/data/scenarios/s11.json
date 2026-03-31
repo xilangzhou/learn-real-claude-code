@@ -1,0 +1,53 @@
+{
+  "version": "s11",
+  "title": "Self-Organizing Workers",
+  "description": "Workers can claim tasks from a board and continue with simple local rules.",
+  "steps": [
+    {
+      "type": "user_message",
+      "content": "Let the workers pick up the remaining cleanup tasks on their own.",
+      "annotation": "The request delegates control to the runtime, not a central planner."
+    },
+    {
+      "type": "tool_call",
+      "content": "{\"title\":\"Tighten glossary wording\"}",
+      "toolName": "task_create",
+      "annotation": "The shared board receives a new claimable task."
+    },
+    {
+      "type": "tool_result",
+      "content": "Created board task board-3",
+      "toolName": "task_create",
+      "annotation": "The task now exists for any worker to discover."
+    },
+    {
+      "type": "tool_call",
+      "content": "{}",
+      "toolName": "idle",
+      "annotation": "An idle cycle is where autonomous workers poll inboxes and scan for work."
+    },
+    {
+      "type": "tool_result",
+      "content": "worker-b claimed board-3 and sent a progress update",
+      "toolName": "idle",
+      "annotation": "A local policy plus shared state is enough to produce autonomous progress."
+    },
+    {
+      "type": "tool_call",
+      "content": "{}",
+      "toolName": "task_list",
+      "annotation": "The lead can still inspect the shared state at any time."
+    },
+    {
+      "type": "tool_result",
+      "content": "board-3 | in_progress | owner=worker-b",
+      "toolName": "task_list",
+      "annotation": "Autonomy remains observable because it is grounded in shared runtime state."
+    },
+    {
+      "type": "assistant_text",
+      "content": "A worker picked up the cleanup task without central assignment, and the board reflects the new owner.",
+      "annotation": "Self-organization emerges from simple runtime rules."
+    }
+  ]
+}

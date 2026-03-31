@@ -1,0 +1,29 @@
+{
+  "version": "s01",
+  "title": "The Agent Loop",
+  "description": "One user request, one model loop, one tool surface.",
+  "steps": [
+    {
+      "type": "user_message",
+      "content": "List the files in this workspace and tell me what looks important.",
+      "annotation": "The loop starts with a natural language request."
+    },
+    {
+      "type": "tool_call",
+      "content": "ls",
+      "toolName": "bash",
+      "annotation": "The model chooses its only action surface."
+    },
+    {
+      "type": "tool_result",
+      "content": "README.md\nagents/\nweb/\ntests/",
+      "toolName": "bash",
+      "annotation": "The harness appends the result back into the conversation."
+    },
+    {
+      "type": "assistant_text",
+      "content": "This repo is centered around teaching agent mechanics. The `agents/`, `web/`, and `tests/` directories are likely the key entry points.",
+      "annotation": "With one loop and one tool, the agent can already inspect and answer."
+    }
+  ]
+}

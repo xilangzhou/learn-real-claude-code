@@ -1,0 +1,33 @@
+{
+  "version": "s07",
+  "decisions": [
+    {
+      "id": "tasks-outside-chat",
+      "title": "Move Durable Work State Outside The Transcript",
+      "description": "Persistent tasks are stored separately from the chat so they survive context churn and can be queried independently of the current conversation window.",
+      "alternatives": "Keeping the task graph inside messages makes the demo shorter, but it ties durable work state to volatile prompt history.",
+      "zh": {
+        "title": "把持久任务状态移出对话正文",
+        "description": "持久任务要放在聊天记录之外，这样才能跨上下文波动保存，并独立于当前窗口查询。"
+      },
+      "ja": {
+        "title": "永続タスク状態を会話の外へ出す",
+        "description": "永続タスクはチャット本文から切り離して保存し、文脈の揺れに影響されず独立に参照できるようにします。"
+      }
+    },
+    {
+      "id": "todo-vs-task",
+      "title": "Keep Session Todos And Persistent Tasks As Separate Concepts",
+      "description": "The course now makes a hard distinction: session todos guide the current turn sequence, while tasks represent durable units of work with their own lifecycle.",
+      "alternatives": "Merging the two concepts reduces surface area, but it blurs a boundary that matters in real harness design.",
+      "zh": {
+        "title": "明确区分会话 todo 和持久 task",
+        "description": "现在课程明确把两者分开：todo 管当前执行顺序，task 管持久工作单元及其生命周期。"
+      },
+      "ja": {
+        "title": "セッション todo と永続 task を分ける",
+        "description": "todo は現在の進行順を導き、task は独自のライフサイクルを持つ永続的な作業単位として扱います。"
+      }
+    }
+  ]
+}

@@ -1,0 +1,218 @@
+[
+  {
+    "version": "s01",
+    "locale": "en",
+    "title": "s01: The Agent Loop",
+    "content": "# s01: The Agent Loop\n\n## Why This Chapter Exists\n\nA coding agent does not start as a planner, a team, or a workflow graph. It starts as a loop that can observe and act.\n\n## Core Mechanism\n\n- append the user message to history\n- call the model with tools\n- if the model asks for a tool, execute it and append the result\n- if not, return the final answer\n\n## Mapping To The Python Code\n\n`agents/s01_agent_loop.py` keeps only the visible teaching shell while `agents/_shared.py` carries the reusable loop helper.\n\n## What Is Intentionally Simplified\n\nThe real system contains streaming, retries, permissions, token budgeting, and interruption logic. This chapter intentionally ignores all of that so the invariant stays visible.\n\n## Try It\n\n- Run `python agents/s01_the_agent_loop.py` if the filename matches the chapter script, or open the file directly if you are reading first.\n- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.\n- Compare the visible runtime state before and after the tool call or control-flow change.\n\n## Bridge To The Next Chapter\n\nOnce the loop exists, the next question is not how to rewrite it, but how to add new capabilities without touching it.\n"
+  },
+  {
+    "version": "s02",
+    "locale": "en",
+    "title": "s02: Tool Protocol",
+    "content": "# s02: Tool Protocol\n\n## Why This Chapter Exists\n\nA loop with one action surface is real, but still too crude. The next step is to make capabilities explicit and structured.\n\n## Core Mechanism\n\n- define tools as named protocol objects\n- give each tool an input schema\n- register them in one registry\n- let the loop dispatch by tool name\n\n## Mapping To The Python Code\n\n`agents/s02_tool_use.py` keeps the loop unchanged and only swaps the tool pool from one bash tool to a structured registry.\n\n## What Is Intentionally Simplified\n\nThe full product tool layer would also care about approvals, rendering, rich outputs, and telemetry. Here we keep only name, schema, and handler.\n\n## Try It\n\n- Run `python agents/s02_tool_use.py` if the filename matches the chapter script, or open the file directly if you are reading first.\n- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.\n- Compare the visible runtime state before and after the tool call or control-flow change.\n\n## Bridge To The Next Chapter\n\nOnce tools are stable, the agent can start keeping visible state about its own work.\n"
+  },
+  {
+    "version": "s03",
+    "locale": "en",
+    "title": "s03: Session State",
+    "content": "# s03: Session State\n\n## Why This Chapter Exists\n\nWithout visible short-horizon state, the model often drifts between subtasks and forgets what it intended to do next.\n\n## Core Mechanism\n\n- store a short checklist outside the hidden reasoning\n- limit the list to a human-sized plan\n- allow only one active item\n- treat it as session guidance rather than durable project state\n\n## Mapping To The Python Code\n\n`agents/s03_todo_write.py` keeps a `TodoManager` in memory and exposes it through `todo_write` as the visible session checklist.\n\n## What Is Intentionally Simplified\n\nThe important correction is conceptual: this is not yet the durable task runtime. It is only the current session guide.\n\n## Try It\n\n- Run `python agents/s03_todo_write.py` if the filename matches the chapter script, or open the file directly if you are reading first.\n- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.\n- Compare the visible runtime state before and after the tool call or control-flow change.\n\n## Bridge To The Next Chapter\n\nThe moment work can be externalized, delegation stops being magical and starts becoming a runtime design choice.\n"
+  },
+  {
+    "version": "s04",
+    "locale": "en",
+    "title": "s04: Delegation Modes",
+    "content": "# s04: Delegation Modes\n\n## Why This Chapter Exists\n\nOlder teaching material often treats every subagent as a clean-room child. That is too simple to explain modern delegation behavior.\n\n## Core Mechanism\n\n- fresh delegation starts from a clean history\n- forked delegation inherits scoped context\n- both run a focused child loop\n- the parent usually gets back a summary instead of the full child transcript\n\n## Mapping To The Python Code\n\n`agents/s04_subagent.py` models the two modes with one delegate tool so the difference stays visible in the same file.\n\n## What Is Intentionally Simplified\n\nReal systems have more worker types and more careful context inheritance rules. The teaching version keeps only the minimal strategic distinction.\n\n## Try It\n\n- Run `python agents/s04_subagent.py` if the filename matches the chapter script, or open the file directly if you are reading first.\n- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.\n- Compare the visible runtime state before and after the tool call or control-flow change.\n\n## Bridge To The Next Chapter\n\nIf workers can be created on demand, the next question is how to load domain knowledge on demand as well.\n"
+  },
+  {
+    "version": "s05",
+    "locale": "en",
+    "title": "s05: Skill Discovery",
+    "content": "# s05: Skill Discovery\n\n## Why This Chapter Exists\n\nPacking every domain instruction into the system prompt makes the context heavy and unfocused.\n\n## Core Mechanism\n\n- treat a skill as metadata plus instructions\n- discover available skills from directories and conditions\n- activate only the relevant skill for the current task\n- inject the content late instead of keeping it always in context\n\n## Mapping To The Python Code\n\n`agents/s05_skill_loading.py` keeps the lesson centered on discovery, filtering, and activation rather than on fancy prompt templating.\n\n## What Is Intentionally Simplified\n\nThe full product can load from many sources and apply richer matching rules. The teaching version keeps just enough structure to explain why the system exists.\n\n## Try It\n\n- Run `python agents/s05_skill_loading.py` if the filename matches the chapter script, or open the file directly if you are reading first.\n- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.\n- Compare the visible runtime state before and after the tool call or control-flow change.\n\n## Bridge To The Next Chapter\n\nLate-loaded knowledge helps, but long sessions still fail if the harness cannot manage its context window.\n"
+  },
+  {
+    "version": "s06",
+    "locale": "en",
+    "title": "s06: Context Management Stack",
+    "content": "# s06: Context Management Stack\n\n## Why This Chapter Exists\n\nA long-running agent does not have one context problem. It has many: oversized tool outputs, stale history, and moments where the model itself needs a reset.\n\n## Core Mechanism\n\n- trim large tool results before they dominate history\n- maintain rolling summaries for continuity\n- allow explicit manual compact requests\n- treat these as different interventions rather than one button\n\n## Mapping To The Python Code\n\n`agents/s06_context_compact.py` introduces a context manager object that owns the policies instead of hardcoding one compression pass into the loop.\n\n## What Is Intentionally Simplified\n\nThe real product can have additional collapse paths and budget heuristics. The teaching version is a stack, but still a simplified stack.\n\n## Try It\n\n- Run `python agents/s06_context_compact.py` if the filename matches the chapter script, or open the file directly if you are reading first.\n- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.\n- Compare the visible runtime state before and after the tool call or control-flow change.\n\n## Bridge To The Next Chapter\n\nOnce history can be managed, the runtime is ready to move durable work state out of the transcript entirely.\n"
+  },
+  {
+    "version": "s07",
+    "locale": "en",
+    "title": "s07: Persistent Task Runtime",
+    "content": "# s07: Persistent Task Runtime\n\n## Why This Chapter Exists\n\nA checklist inside the chat is useful, but it disappears with the session. Serious work tracking needs its own storage and lifecycle.\n\n## Core Mechanism\n\n- persist tasks outside the message history\n- support task create, get, list, and update\n- treat tasks as durable runtime state\n- keep them conceptually separate from session todos\n\n## Mapping To The Python Code\n\n`agents/s07_task_system.py` writes durable state into a dedicated runtime folder so the task plane survives chat churn.\n\n## What Is Intentionally Simplified\n\nThe teaching version uses a compact file-backed store. The point is durability and separation of concerns, not production-grade task orchestration.\n\n## Try It\n\n- Run `python agents/s07_task_system.py` if the filename matches the chapter script, or open the file directly if you are reading first.\n- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.\n- Compare the visible runtime state before and after the tool call or control-flow change.\n\n## Bridge To The Next Chapter\n\nWith durable state in place, the runtime can start owning work that continues even when the foreground loop moves on.\n"
+  },
+  {
+    "version": "s08",
+    "locale": "en",
+    "title": "s08: Background Runtime",
+    "content": "# s08: Background Runtime\n\n## Why This Chapter Exists\n\nSome operations are too slow to sit inline inside the foreground reasoning loop.\n\n## Core Mechanism\n\n- spawn long work into a background runtime\n- return a stable handle immediately\n- allow explicit polling\n- feed completion notifications back into the foreground conversation\n\n## Mapping To The Python Code\n\n`agents/s08_background_tasks.py` keeps the core lesson focused on handles, polling, and notification reinjection.\n\n## What Is Intentionally Simplified\n\nThe teaching runtime is intentionally small. The point is to show why background work needs runtime semantics, not just threads.\n\n## Try It\n\n- Run `python agents/s08_background_tasks.py` if the filename matches the chapter script, or open the file directly if you are reading first.\n- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.\n- Compare the visible runtime state before and after the tool call or control-flow change.\n\n## Bridge To The Next Chapter\n\nIf the runtime can own multiple units of work, the next step is to let multiple named workers collaborate on them.\n"
+  },
+  {
+    "version": "s09",
+    "locale": "en",
+    "title": "s09: Team Mailboxes",
+    "content": "# s09: Team Mailboxes\n\n## Why This Chapter Exists\n\nAdding more agents is not enough. Collaboration only becomes teachable when messages, identity, and routing are explicit.\n\n## Core Mechanism\n\n- give workers stable names\n- route communication through mailboxes\n- let each worker keep its own loop and state\n- treat message passing as the collaboration surface\n\n## Mapping To The Python Code\n\n`agents/s09_agent_teams.py` introduces a mailbox bus and team manager rather than pretending workers share one hidden mind.\n\n## What Is Intentionally Simplified\n\nThe message transport is intentionally plain. The teaching target is explicit collaboration, not transport sophistication.\n\n## Try It\n\n- Run `python agents/s09_agent_teams.py` if the filename matches the chapter script, or open the file directly if you are reading first.\n- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.\n- Compare the visible runtime state before and after the tool call or control-flow change.\n\n## Bridge To The Next Chapter\n\nOnce messages exist, the runtime can start distinguishing ordinary chat from typed coordination requests.\n"
+  },
+  {
+    "version": "s10",
+    "locale": "en",
+    "title": "s10: Team Protocols",
+    "content": "# s10: Team Protocols\n\n## Why This Chapter Exists\n\nNot every message in a team is just text. Some messages open a lifecycle that the runtime must remember and match later.\n\n## Core Mechanism\n\n- add request ids to important coordination messages\n- track pending, approved, and rejected states\n- model plan and shutdown as typed requests\n- let the runtime poll and resolve protocol state\n\n## Mapping To The Python Code\n\n`agents/s10_team_protocols.py` keeps the lesson grounded by showing that a protocol is just message plus lifecycle state.\n\n## What Is Intentionally Simplified\n\nThe teaching version contains only a small set of protocols. The key lesson is that typed coordination needs memory, not just better wording.\n\n## Try It\n\n- Run `python agents/s10_team_protocols.py` if the filename matches the chapter script, or open the file directly if you are reading first.\n- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.\n- Compare the visible runtime state before and after the tool call or control-flow change.\n\n## Bridge To The Next Chapter\n\nIf the runtime can coordinate workers explicitly, it can also let them self-coordinate around shared state.\n"
+  },
+  {
+    "version": "s11",
+    "locale": "en",
+    "title": "s11: Self-Organizing Workers",
+    "content": "# s11: Self-Organizing Workers\n\n## Why This Chapter Exists\n\nA team still feels scripted if every action comes from the lead. Useful autonomy appears when workers can notice, claim, and continue work on their own.\n\n## Core Mechanism\n\n- maintain a shared task board\n- give each worker an inbox\n- let workers poll during idle periods\n- allow local policies such as auto-claiming open work\n\n## Mapping To The Python Code\n\n`agents/s11_autonomous_agents.py` keeps autonomy legible by grounding it in shared state and small rules instead of mystery.\n\n## What Is Intentionally Simplified\n\nThe local policies here are intentionally simple. The lesson is emergence from runtime structure, not optimal scheduling.\n\n## Try It\n\n- Run `python agents/s11_autonomous_agents.py` if the filename matches the chapter script, or open the file directly if you are reading first.\n- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.\n- Compare the visible runtime state before and after the tool call or control-flow change.\n\n## Bridge To The Next Chapter\n\nOnce workers can self-organize, the last missing piece is to isolate their execution surfaces so concurrent work does not collide.\n"
+  },
+  {
+    "version": "s12",
+    "locale": "en",
+    "title": "s12: Worktree Isolation",
+    "content": "# s12: Worktree Isolation\n\n## Why This Chapter Exists\n\nShared logical state is not enough if multiple workstreams still mutate the same filesystem surface.\n\n## Core Mechanism\n\n- bind a task to an isolated worktree\n- make isolation part of the runtime rather than an operator trick\n- record lifecycle events in an event log\n- treat task state as control plane and filesystem isolation as execution plane\n\n## Mapping To The Python Code\n\n`agents/s12_worktree_task_isolation.py` ties together task board state, worktree provisioning, and an event log to make isolation inspectable.\n\n## What Is Intentionally Simplified\n\nThe teaching version does not need every branch-management edge case. The point is to make filesystem isolation a first-class part of the curriculum.\n\n## Try It\n\n- Run `python agents/s12_worktree_task_isolation.py` if the filename matches the chapter script, or open the file directly if you are reading first.\n- Ask the model to perform one task that clearly needs the new mechanism introduced in this chapter.\n- Compare the visible runtime state before and after the tool call or control-flow change.\n\n## Bridge To The Next Chapter\n\nAt this point the curriculum has reached a believable small runtime: loop, tools, visible state, delegation, memory, tasks, concurrency, collaboration, and isolation.\n"
+  },
+  {
+    "version": "s01",
+    "locale": "zh",
+    "title": "s01: The Agent Loop",
+    "content": "# s01: The Agent Loop\n\n## 为什么需要这一章\n\n一个 coding agent 的起点不是规划器、不是多 agent 团队，也不是工作流图，而是一个能观察和行动的循环。\n\n## 核心机制\n\n- 把用户消息追加到历史\n- 携带工具定义发起模型调用\n- 如果模型请求工具，就执行并回写结果\n- 如果没有工具调用，就返回最终回答\n\n## 这一章如何映射到 Python 代码\n\n`agents/s01_agent_loop.py` 只保留可见教学外壳，把可复用循环辅助逻辑收进 `agents/_shared.py`。\n\n## 这里刻意简化了什么\n\n真实系统还会处理 streaming、重试、权限、token 预算和中断恢复。这一章有意忽略这些复杂度，只保留循环不变量。\n\n## 建议你自己试一试\n\n- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。\n- 给模型一个必须用到本章机制的任务，而不是只问概念定义。\n- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。\n\n## 它如何连接到下一章\n\n当循环成立之后，下一步真正的问题不是如何重写循环，而是如何在不碰循环的前提下增加能力。\n"
+  },
+  {
+    "version": "s02",
+    "locale": "zh",
+    "title": "s02: Tool Protocol",
+    "content": "# s02: Tool Protocol\n\n## 为什么需要这一章\n\n只有一个动作面的循环虽然真实，但仍然过于粗糙。下一步要做的是把能力显式化、结构化。\n\n## 核心机制\n\n- 把工具定义成具名协议对象\n- 给每个工具一个输入 schema\n- 统一注册到 registry\n- 让循环按工具名做分发\n\n## 这一章如何映射到 Python 代码\n\n`agents/s02_tool_use.py` 完全不改循环，只把单一 bash 动作面换成结构化工具注册表。\n\n## 这里刻意简化了什么\n\n完整产品级工具层还要处理审批、渲染、富结果和遥测，这里只保留 name、schema 和 handler。\n\n## 建议你自己试一试\n\n- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。\n- 给模型一个必须用到本章机制的任务，而不是只问概念定义。\n- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。\n\n## 它如何连接到下一章\n\n当工具层稳定之后，agent 就可以开始维护关于自身工作的可见状态。\n"
+  },
+  {
+    "version": "s03",
+    "locale": "zh",
+    "title": "s03: Session State",
+    "content": "# s03: Session State\n\n## 为什么需要这一章\n\n如果没有可见的短周期状态，模型很容易在多个子任务之间漂移，忘记自己下一步本来要做什么。\n\n## 核心机制\n\n- 把短清单放到隐藏推理之外\n- 把计划限制在人类可读的规模内\n- 同一时间只允许一个活动项\n- 把它当成会话引导，而不是持久项目状态\n\n## 这一章如何映射到 Python 代码\n\n`agents/s03_todo_write.py` 在内存里维护 `TodoManager`，再通过 `todo_write` 把它暴露成可见会话清单。\n\n## 这里刻意简化了什么\n\n这里最重要的纠正不是实现细节，而是概念边界：这还不是持久任务运行时，只是当前会话指南。\n\n## 建议你自己试一试\n\n- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。\n- 给模型一个必须用到本章机制的任务，而不是只问概念定义。\n- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。\n\n## 它如何连接到下一章\n\n当工作状态可以外化之后，委托就不再是神秘技巧，而开始变成一个运行时设计选择。\n"
+  },
+  {
+    "version": "s04",
+    "locale": "zh",
+    "title": "s04: Delegation Modes",
+    "content": "# s04: Delegation Modes\n\n## 为什么需要这一章\n\n旧教学材料往往把所有 subagent 都讲成 clean-room child，但这已经不足以解释现代委托行为。\n\n## 核心机制\n\n- fresh 委托从干净历史启动\n- fork 委托继承受限上下文\n- 两者都会运行一个聚焦子循环\n- 父 agent 通常只拿回摘要，而不是完整子对话\n\n## 这一章如何映射到 Python 代码\n\n`agents/s04_subagent.py` 用同一个 delegate 工具承载两种模式，让差异在同一文件里清晰可见。\n\n## 这里刻意简化了什么\n\n真实系统会有更多 worker 类型和更细的上下文继承规则，教学版只保留最核心的策略分野。\n\n## 建议你自己试一试\n\n- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。\n- 给模型一个必须用到本章机制的任务，而不是只问概念定义。\n- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。\n\n## 它如何连接到下一章\n\n既然 worker 可以按需生成，下一个自然问题就是：领域知识能不能也按需加载。\n"
+  },
+  {
+    "version": "s05",
+    "locale": "zh",
+    "title": "s05: Skill Discovery",
+    "content": "# s05: Skill Discovery\n\n## 为什么需要这一章\n\n把所有领域指令都塞进 system prompt，会让上下文既沉重又失焦。\n\n## 核心机制\n\n- 把 skill 看成“元数据 + 指令正文”\n- 从目录和条件中发现可用技能\n- 只为当前任务激活相关 skill\n- 晚注入正文，而不是永久占着上下文\n\n## 这一章如何映射到 Python 代码\n\n`agents/s05_skill_loading.py` 的重点放在发现、筛选和激活，而不是花哨的 prompt 模板技巧。\n\n## 这里刻意简化了什么\n\n完整产品可能从多源加载，并使用更复杂的匹配规则；教学版只保留足够解释系统存在意义的结构。\n\n## 建议你自己试一试\n\n- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。\n- 给模型一个必须用到本章机制的任务，而不是只问概念定义。\n- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。\n\n## 它如何连接到下一章\n\n按需知识加载能减压，但如果 harness 不能管理上下文窗口，长会话还是会失败。\n"
+  },
+  {
+    "version": "s06",
+    "locale": "zh",
+    "title": "s06: Context Management Stack",
+    "content": "# s06: Context Management Stack\n\n## 为什么需要这一章\n\n长时间运行的 agent 面对的不是一个上下文问题，而是很多问题：超大工具输出、过期历史、以及模型自己意识到需要重置的时刻。\n\n## 核心机制\n\n- 在大结果压垮历史之前先裁剪\n- 用滚动摘要维持连续性\n- 允许模型显式请求 manual compact\n- 把这些看成不同干预，而不是一个按钮\n\n## 这一章如何映射到 Python 代码\n\n`agents/s06_context_compact.py` 用一个 context manager 对象承载策略，而不是把单次压缩硬编码进循环。\n\n## 这里刻意简化了什么\n\n真实产品可能还有更多 collapse 路径和 budget 启发式。教学版已经是策略栈，但仍然是简化后的策略栈。\n\n## 建议你自己试一试\n\n- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。\n- 给模型一个必须用到本章机制的任务，而不是只问概念定义。\n- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。\n\n## 它如何连接到下一章\n\n当历史管理能力建立后，运行时就可以进一步把持久工作状态彻底移出 transcript。\n"
+  },
+  {
+    "version": "s07",
+    "locale": "zh",
+    "title": "s07: Persistent Task Runtime",
+    "content": "# s07: Persistent Task Runtime\n\n## 为什么需要这一章\n\n聊天中的 checklist 很有用，但会随会话一起消散。严肃工作跟踪必须拥有自己的存储与生命周期。\n\n## 核心机制\n\n- 把任务持久化到消息历史之外\n- 支持 task create/get/list/update\n- 把任务视为 durable runtime state\n- 在概念上与 session todo 明确分离\n\n## 这一章如何映射到 Python 代码\n\n`agents/s07_task_system.py` 把持久状态写入专门运行时目录，让 task plane 不再依赖聊天窗口。\n\n## 这里刻意简化了什么\n\n教学版采用紧凑的文件存储。重点在于“持久化”和“关注点分离”，而不是产品级任务编排。\n\n## 建议你自己试一试\n\n- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。\n- 给模型一个必须用到本章机制的任务，而不是只问概念定义。\n- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。\n\n## 它如何连接到下一章\n\n有了持久状态之后，运行时就可以开始拥有那些前台 loop 继续往前走时仍会持续的工作。\n"
+  },
+  {
+    "version": "s08",
+    "locale": "zh",
+    "title": "s08: Background Runtime",
+    "content": "# s08: Background Runtime\n\n## 为什么需要这一章\n\n有些操作太慢，不能继续以内联方式塞在前台推理循环里。\n\n## 核心机制\n\n- 把长任务转交后台运行时\n- 立即返回稳定句柄\n- 允许显式轮询\n- 把完成通知重新注入前台对话\n\n## 这一章如何映射到 Python 代码\n\n`agents/s08_background_tasks.py` 把核心教学焦点放在句柄、轮询和通知回注三件事上。\n\n## 这里刻意简化了什么\n\n教学版 runtime 故意保持很小，重点是说明后台工作需要“运行时语义”，而不只是线程。\n\n## 建议你自己试一试\n\n- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。\n- 给模型一个必须用到本章机制的任务，而不是只问概念定义。\n- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。\n\n## 它如何连接到下一章\n\n既然运行时已经能拥有多个工作单元，下一步自然是让多个命名 worker 围绕它们协作。\n"
+  },
+  {
+    "version": "s09",
+    "locale": "zh",
+    "title": "s09: Team Mailboxes",
+    "content": "# s09: Team Mailboxes\n\n## 为什么需要这一章\n\n光增加更多 agent 并不够。只有当消息、身份和路由都显式化后，协作才真正可教、可调试。\n\n## 核心机制\n\n- 给 worker 稳定名称\n- 通过 mailbox 路由通信\n- 让每个 worker 拥有自己的循环和状态\n- 把消息传递当成协作表面\n\n## 这一章如何映射到 Python 代码\n\n`agents/s09_agent_teams.py` 引入 mailbox bus 和 team manager，而不是假装所有 worker 共享一个隐藏大脑。\n\n## 这里刻意简化了什么\n\n消息传输层故意保持朴素，教学目标是显式协作，而不是传输层炫技。\n\n## 建议你自己试一试\n\n- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。\n- 给模型一个必须用到本章机制的任务，而不是只问概念定义。\n- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。\n\n## 它如何连接到下一章\n\n当消息面建立之后，运行时就可以开始区分“普通对话”和“类型化协调请求”。\n"
+  },
+  {
+    "version": "s10",
+    "locale": "zh",
+    "title": "s10: Team Protocols",
+    "content": "# s10: Team Protocols\n\n## 为什么需要这一章\n\n团队里的消息并不都是普通文本。有些消息会开启一个生命周期，运行时必须记住并在之后匹配它。\n\n## 核心机制\n\n- 为重要协调消息加入 request id\n- 跟踪 pending、approved、rejected 状态\n- 把 plan 和 shutdown 建模成类型化请求\n- 让运行时轮询并解析协议状态\n\n## 这一章如何映射到 Python 代码\n\n`agents/s10_team_protocols.py` 用一个很接地气的事实来教学：协议其实就是“消息 + 生命周期状态”。\n\n## 这里刻意简化了什么\n\n教学版只保留少量协议，关键不是协议种类多，而是说明“类型化协调需要记忆，不只是更好的措辞”。\n\n## 建议你自己试一试\n\n- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。\n- 给模型一个必须用到本章机制的任务，而不是只问概念定义。\n- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。\n\n## 它如何连接到下一章\n\n既然运行时已经能显式协调 worker，那么它也可以进一步允许 worker 围绕共享状态自协调。\n"
+  },
+  {
+    "version": "s11",
+    "locale": "zh",
+    "title": "s11: Self-Organizing Workers",
+    "content": "# s11: Self-Organizing Workers\n\n## 为什么需要这一章\n\n如果团队里的每一步动作都来自 lead 指派，那么它仍然很像脚本。真正有用的自主性来自 worker 能自己发现、认领并继续工作。\n\n## 核心机制\n\n- 维护共享任务板\n- 给每个 worker 一个 inbox\n- 让 worker 在 idle 周期里轮询\n- 允许本地策略，比如自动认领开放任务\n\n## 这一章如何映射到 Python 代码\n\n`agents/s11_autonomous_agents.py` 不把自主性讲成神秘属性，而是把它落在共享状态和小规则上。\n\n## 这里刻意简化了什么\n\n这里的局部策略故意很简单，重点是展示“自主性如何从运行时结构涌现”，而不是最优调度。\n\n## 建议你自己试一试\n\n- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。\n- 给模型一个必须用到本章机制的任务，而不是只问概念定义。\n- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。\n\n## 它如何连接到下一章\n\n当 worker 已经可以自组织，最后缺的就是把它们的执行表面隔离开，避免并发工作互相碰撞。\n"
+  },
+  {
+    "version": "s12",
+    "locale": "zh",
+    "title": "s12: Worktree Isolation",
+    "content": "# s12: Worktree Isolation\n\n## 为什么需要这一章\n\n如果多个工作流仍然共享同一个文件系统表面，那么仅有逻辑层的共享状态还不够。\n\n## 核心机制\n\n- 把任务绑定到隔离 worktree\n- 让隔离成为运行时能力，而不是操作者技巧\n- 在事件日志中记录生命周期\n- 把 task state 视作控制面，把文件系统隔离视作执行面\n\n## 这一章如何映射到 Python 代码\n\n`agents/s12_worktree_task_isolation.py` 把 task board、worktree 建立和事件日志捆在一起，让隔离能力可检查。\n\n## 这里刻意简化了什么\n\n教学版不需要覆盖所有 branch 管理边界情况，重点是把文件系统隔离提升成课程中的一等能力。\n\n## 建议你自己试一试\n\n- 先打开 `agents/` 里本章对应的 Python 文件，观察新增类、工具或运行时状态。\n- 给模型一个必须用到本章机制的任务，而不是只问概念定义。\n- 关注“状态是存在哪儿、谁负责更新、父子/前后台/多 worker 如何看到它”。\n\n## 它如何连接到下一章\n\n到这里，这条课程终于形成了一个可信的小型运行时：循环、工具、可见状态、委托、记忆、任务、并发、协作和隔离全部接上了。\n"
+  },
+  {
+    "version": "s01",
+    "locale": "ja",
+    "title": "s01: The Agent Loop",
+    "content": "# s01: The Agent Loop\n\n## なぜこの章が必要か\n\nコーディングエージェントの出発点は、プランナーでもチームでもワークフローグラフでもなく、観測して行動できるループです。\n\n## コアメカニズム\n\n- ユーザーメッセージを履歴に追加する\n- ツール定義付きでモデルを呼ぶ\n- ツール要求が来たら実行して結果を戻す\n- そうでなければ最終回答を返す\n\n## Python コードへの対応\n\n`agents/s01_agent_loop.py` は見せるべき最小部分だけを残し、再利用部分は `agents/_shared.py` に置いています。\n\n## 意図的に単純化している点\n\n実システムには streaming、retry、permission、token budget、interrupt 回復もありますが、この章ではループ不変条件を見せるために意図的に省いています。\n\n## 試してみること\n\n- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。\n- この章の新機構を実際に使わないと進まないタスクを与える。\n- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。\n\n## 次章へのつながり\n\nループが成立した次に問うべきは、どう書き換えるかではなく、どう触らずに能力を増やすかです。\n"
+  },
+  {
+    "version": "s02",
+    "locale": "ja",
+    "title": "s02: Tool Protocol",
+    "content": "# s02: Tool Protocol\n\n## なぜこの章が必要か\n\n一つのアクション面を持つループは本物ですが、まだ粗すぎます。次は能力を明示的で構造化されたものにします。\n\n## コアメカニズム\n\n- ツールを名前付きプロトコルオブジェクトとして定義する\n- 各ツールに入力 schema を与える\n- 一つの registry に登録する\n- ループはツール名で dispatch する\n\n## Python コードへの対応\n\n`agents/s02_tool_use.py` はループを変えず、一つの bash 面を構造化ツール registry に置き換えます。\n\n## 意図的に単純化している点\n\n製品レベルのツール層は approval、rendering、rich output、telemetry も扱いますが、ここでは name、schema、handler だけを残します。\n\n## 試してみること\n\n- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。\n- この章の新機構を実際に使わないと進まないタスクを与える。\n- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。\n\n## 次章へのつながり\n\nツール層が安定したら、エージェントは自分の作業について可視状態を持てるようになります。\n"
+  },
+  {
+    "version": "s03",
+    "locale": "ja",
+    "title": "s03: Session State",
+    "content": "# s03: Session State\n\n## なぜこの章が必要か\n\n短期の可視状態がないと、モデルはサブタスク間を漂い、次に何をするつもりだったかを失いやすくなります。\n\n## コアメカニズム\n\n- 短いチェックリストを隠れた推論の外に置く\n- 人間が読める規模に制限する\n- 同時に一つだけを active にする\n- 永続状態ではなく session guidance として扱う\n\n## Python コードへの対応\n\n`agents/s03_todo_write.py` はメモリ上の `TodoManager` を `todo_write` で公開し、可視のセッションチェックリストにします。\n\n## 意図的に単純化している点\n\nここで大事なのは実装詳細より概念境界です。これはまだ永続タスクランタイムではなく、現在セッションの案内です。\n\n## 試してみること\n\n- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。\n- この章の新機構を実際に使わないと進まないタスクを与える。\n- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。\n\n## 次章へのつながり\n\n作業状態を外在化できるようになると、委任は魔法ではなくランタイム設計の選択になります。\n"
+  },
+  {
+    "version": "s04",
+    "locale": "ja",
+    "title": "s04: Delegation Modes",
+    "content": "# s04: Delegation Modes\n\n## なぜこの章が必要か\n\n古い教材では全ての subagent を clean-room child とみなしがちですが、それでは現代的な委任挙動を説明しきれません。\n\n## コアメカニズム\n\n- fresh delegation はクリーンな履歴から始まる\n- fork delegation は限定文脈を引き継ぐ\n- どちらも焦点化された子ループを走らせる\n- 親には通常、全文ではなく要約が戻る\n\n## Python コードへの対応\n\n`agents/s04_subagent.py` は同じ delegate ツールで二つのモードを表し、差を一つのファイルで見えるようにしています。\n\n## 意図的に単純化している点\n\n実システムにはもっと多くの worker 型と細かな文脈継承規則がありますが、教材版では戦略的差分だけを残します。\n\n## 試してみること\n\n- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。\n- この章の新機構を実際に使わないと進まないタスクを与える。\n- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。\n\n## 次章へのつながり\n\nworker をオンデマンドで作れるなら、次の問いはドメイン知識もオンデマンドで読めるかです。\n"
+  },
+  {
+    "version": "s05",
+    "locale": "ja",
+    "title": "s05: Skill Discovery",
+    "content": "# s05: Skill Discovery\n\n## なぜこの章が必要か\n\n全てのドメイン指示を system prompt に詰め込むと、文脈が重くなり焦点も失われます。\n\n## コアメカニズム\n\n- skill を metadata と instructions の組にする\n- ディレクトリと条件から利用可能 skill を見つける\n- 現在タスクに関係あるものだけを activate する\n- 常駐させず遅延注入する\n\n## Python コードへの対応\n\n`agents/s05_skill_loading.py` は派手な prompt template ではなく、discovery、filtering、activation を中心に据えます。\n\n## 意図的に単純化している点\n\n製品版は多ソース読み込みやより豊かな matching rule を持てますが、教材版では存在理由を説明する最小構造に絞ります。\n\n## 試してみること\n\n- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。\n- この章の新機構を実際に使わないと進まないタスクを与える。\n- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。\n\n## 次章へのつながり\n\n遅延ロードは助けになりますが、文脈窓を管理できなければ長いセッションは依然として壊れます。\n"
+  },
+  {
+    "version": "s06",
+    "locale": "ja",
+    "title": "s06: Context Management Stack",
+    "content": "# s06: Context Management Stack\n\n## なぜこの章が必要か\n\n長時間走るエージェントが抱える文脈問題は一つではありません。巨大なツール出力、古い履歴、モデル自身がリセットを必要とする瞬間など複数あります。\n\n## コアメカニズム\n\n- 巨大な結果が履歴を支配する前に刈り込む\n- continuity のために rolling summary を維持する\n- manual compact を明示的に許す\n- これらを一つのボタンではなく別個の介入として扱う\n\n## Python コードへの対応\n\n`agents/s06_context_compact.py` は一回限りの圧縮をループに埋め込まず、context manager が方針を持つ形にします。\n\n## 意図的に単純化している点\n\n実製品にはさらに多くの collapse path や budget heuristic があり得ます。教材版はスタックですが、なお簡略化されたスタックです。\n\n## 試してみること\n\n- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。\n- この章の新機構を実際に使わないと進まないタスクを与える。\n- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。\n\n## 次章へのつながり\n\n履歴管理ができるようになると、永続作業状態を transcript の外へ完全に出す準備が整います。\n"
+  },
+  {
+    "version": "s07",
+    "locale": "ja",
+    "title": "s07: Persistent Task Runtime",
+    "content": "# s07: Persistent Task Runtime\n\n## なぜこの章が必要か\n\nチャット内の checklist は便利ですが、セッションと共に消えます。本格的な仕事追跡には専用の保存先とライフサイクルが必要です。\n\n## コアメカニズム\n\n- タスクをメッセージ履歴の外に永続化する\n- task create/get/list/update を支える\n- タスクを durable runtime state として扱う\n- session todo と概念的に分離する\n\n## Python コードへの対応\n\n`agents/s07_task_system.py` は専用ランタイムフォルダに永続状態を書き込み、task plane がチャット窓に依存しないようにします。\n\n## 意図的に単純化している点\n\n教材版は小さなファイルベース store を使います。ポイントは durability と concern separation であって、製品級オーケストレーションではありません。\n\n## 試してみること\n\n- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。\n- この章の新機構を実際に使わないと進まないタスクを与える。\n- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。\n\n## 次章へのつながり\n\n永続状態が整うと、前景ループが進んでも続き得る作業をランタイムが所有できるようになります。\n"
+  },
+  {
+    "version": "s08",
+    "locale": "ja",
+    "title": "s08: Background Runtime",
+    "content": "# s08: Background Runtime\n\n## なぜこの章が必要か\n\nいくつかの操作は遅すぎて、前景の推論ループにそのまま埋め込めません。\n\n## コアメカニズム\n\n- 長い仕事を背景ランタイムへ逃がす\n- すぐに安定ハンドルを返す\n- 明示的な polling を許す\n- 完了通知を前景会話へ戻す\n\n## Python コードへの対応\n\n`agents/s08_background_tasks.py` は handle、polling、通知の再注入という核心だけに集中します。\n\n## 意図的に単純化している点\n\n教材版ランタイムは意図的に小さく、背景作業に必要なのは単なる thread ではなく runtime semantics だと示します。\n\n## 試してみること\n\n- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。\n- この章の新機構を実際に使わないと進まないタスクを与える。\n- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。\n\n## 次章へのつながり\n\nランタイムが複数の作業単位を持てるなら、次は複数の名前付き worker が協調する段階です。\n"
+  },
+  {
+    "version": "s09",
+    "locale": "ja",
+    "title": "s09: Team Mailboxes",
+    "content": "# s09: Team Mailboxes\n\n## なぜこの章が必要か\n\nエージェントの数を増やすだけでは不十分です。メッセージ、識別、ルーティングが明示されて初めて協調は教えられ、デバッグ可能になります。\n\n## コアメカニズム\n\n- worker に安定した名前を与える\n- mailbox 経由で通信を route する\n- 各 worker が自分の loop と state を持つ\n- message passing を協調面として扱う\n\n## Python コードへの対応\n\n`agents/s09_agent_teams.py` は mailbox bus と team manager を導入し、workers が一つの隠れた心を共有しているふりをしません。\n\n## 意図的に単純化している点\n\nメッセージ輸送層は意図的に素朴です。教材の焦点は洗練された transport ではなく、明示的な協調です。\n\n## 試してみること\n\n- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。\n- この章の新機構を実際に使わないと進まないタスクを与える。\n- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。\n\n## 次章へのつながり\n\nメッセージ面ができると、ランタイムは通常会話と型付き協調要求を区別できるようになります。\n"
+  },
+  {
+    "version": "s10",
+    "locale": "ja",
+    "title": "s10: Team Protocols",
+    "content": "# s10: Team Protocols\n\n## なぜこの章が必要か\n\nチーム内のメッセージは単なるテキストではありません。後で照合すべきライフサイクルを開くものがあります。\n\n## コアメカニズム\n\n- 重要な協調メッセージに request id を付ける\n- pending、approved、rejected を追跡する\n- plan と shutdown を型付き要求として表す\n- ランタイムが protocol state を poll して解決する\n\n## Python コードへの対応\n\n`agents/s10_team_protocols.py` は protocol が本質的に「message + lifecycle state」だと示します。\n\n## 意図的に単純化している点\n\n教材版は少数の protocol に絞ります。大事なのは数ではなく、型付き協調には wording 以上の記憶が必要だと示すことです。\n\n## 試してみること\n\n- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。\n- この章の新機構を実際に使わないと進まないタスクを与える。\n- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。\n\n## 次章へのつながり\n\nランタイムが workers を明示的に協調できるなら、共有状態の周りで自己協調させることもできます。\n"
+  },
+  {
+    "version": "s11",
+    "locale": "ja",
+    "title": "s11: Self-Organizing Workers",
+    "content": "# s11: Self-Organizing Workers\n\n## なぜこの章が必要か\n\nチーム内の全ての動きが lead の指示から来るなら、まだ scripted です。役に立つ自律性は、worker が自分で見つけ、引き受け、続けられるときに現れます。\n\n## コアメカニズム\n\n- 共有 task board を持つ\n- 各 worker に inbox を与える\n- idle 期間に polling させる\n- open work の auto-claim のような local policy を許す\n\n## Python コードへの対応\n\n`agents/s11_autonomous_agents.py` は自律性を神秘化せず、共有状態と小さな規則に落とします。\n\n## 意図的に単純化している点\n\nここでの local policy は意図的に単純です。焦点は最適スケジューリングではなく、ランタイム構造からの創発です。\n\n## 試してみること\n\n- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。\n- この章の新機構を実際に使わないと進まないタスクを与える。\n- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。\n\n## 次章へのつながり\n\nworkers が自己組織化できるようになったら、最後に必要なのは実行面を分離して並行作業の衝突を避けることです。\n"
+  },
+  {
+    "version": "s12",
+    "locale": "ja",
+    "title": "s12: Worktree Isolation",
+    "content": "# s12: Worktree Isolation\n\n## なぜこの章が必要か\n\n複数の workstream が同じファイルシステム面を触り続けるなら、論理的共有状態だけでは不十分です。\n\n## コアメカニズム\n\n- タスクを分離された worktree に結び付ける\n- 分離を operator trick ではなく runtime 能力にする\n- event log にライフサイクルを書く\n- task state を control plane、filesystem isolation を execution plane とみなす\n\n## Python コードへの対応\n\n`agents/s12_worktree_task_isolation.py` は task board 状態、worktree 作成、event log を結び付け、分離を観測可能にします。\n\n## 意図的に単純化している点\n\n教材版は branch 管理の全 edge case を扱いません。焦点はファイルシステム分離をカリキュラムの一級能力にすることです。\n\n## 試してみること\n\n- `agents/` の対応する Python ファイルを開き、追加された class、tool、runtime state を確認する。\n- この章の新機構を実際に使わないと進まないタスクを与える。\n- 状態がどこに保存され、誰が更新し、誰から見えるかを追う。\n\n## 次章へのつながり\n\nここでカリキュラムは信じられる小さなランタイムに到達します。loop、tools、visible state、delegation、memory、tasks、concurrency、collaboration、isolation が揃いました。\n"
+  }
+]

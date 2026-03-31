@@ -1,0 +1,33 @@
+{
+  "version": "s11",
+  "decisions": [
+    {
+      "id": "shared-board-local-policy",
+      "title": "Autonomy Comes From Shared State Plus Local Policy",
+      "description": "Workers do not need a central scheduler for every move. A shared board, an inbox, and small local rules are enough to let them claim work and keep moving.",
+      "alternatives": "A master planner could assign every step centrally, but that erases the lesson that useful autonomy can emerge from a simple runtime.",
+      "zh": {
+        "title": "自治来自共享状态加局部策略",
+        "description": "worker 不必每一步都由中央调度器指挥。共享任务板、收件箱和少量局部规则，就足以支持自主认领和推进工作。"
+      },
+      "ja": {
+        "title": "自律は共有状態とローカル方針から生まれる",
+        "description": "各手順を中央スケジューラに頼らなくても、共有ボード、受信箱、簡単なローカル規則で仕事を引き取り前進できます。"
+      }
+    },
+    {
+      "id": "idle-is-active",
+      "title": "Idle Time Is Part Of The Runtime, Not Dead Space",
+      "description": "The idle step models waiting, polling, and checking for new messages or claimable tasks. Autonomous agents need a defined behavior even when they are between active actions.",
+      "alternatives": "Ignoring idle behavior makes the demo shorter, but it hides how long-lived workers stay responsive between assignments.",
+      "zh": {
+        "title": "idle 也是运行时的一部分，不是空白",
+        "description": "idle 步骤用来表达等待、轮询和检查新消息或可认领任务。长生命周期 worker 在动作之间也必须有明确定义的行为。"
+      },
+      "ja": {
+        "title": "idle は空白ではなくランタイムの一部",
+        "description": "idle は待機、ポーリング、新着メッセージ確認を表し、長寿命ワーカーが割り当ての合間にも応答性を保つ仕組みを示します。"
+      }
+    }
+  ]
+}

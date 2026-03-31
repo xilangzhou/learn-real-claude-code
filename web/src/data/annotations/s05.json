@@ -1,0 +1,33 @@
+{
+  "version": "s05",
+  "decisions": [
+    {
+      "id": "metadata-first",
+      "title": "Discover Skills From Metadata Before Loading Instructions",
+      "description": "The chapter models skills as discoverable units with metadata, paths, and activation conditions. This shows why a skill system can stay large without injecting every instruction all the time.",
+      "alternatives": "Loading every skill file into the prompt is easy to implement, but it wastes context and removes selective activation.",
+      "zh": {
+        "title": "先靠元数据发现技能，再决定是否加载说明",
+        "description": "技能先以可发现单元的形式出现，只有命中条件时才注入说明，这样技能系统才能扩展而不持续占用上下文。"
+      },
+      "ja": {
+        "title": "まずメタデータでスキルを発見し、必要時だけ読む",
+        "description": "スキルは発見可能な単位として扱い、条件に合ったときだけ説明を注入します。これにより大きなスキル集合でも常時文脈を圧迫しません。"
+      }
+    },
+    {
+      "id": "conditional-activation",
+      "title": "Activation Rules Matter As Much As The Skill Content",
+      "description": "A good skill system is not just storage for prompts. It also decides when a skill is relevant, which is why this chapter includes path and context-based activation.",
+      "alternatives": "Manual skill selection by the user is possible, but it misses the lesson that the harness can help decide what knowledge should be active.",
+      "zh": {
+        "title": "技能内容之外，激活规则同样重要",
+        "description": "好的技能系统不只是提示词仓库，还要判断何时相关，因此这里加入了路径和上下文条件激活。"
+      },
+      "ja": {
+        "title": "スキル内容だけでなく発火条件も重要",
+        "description": "良いスキルシステムは単なるプロンプト置き場ではなく、いつ関連するかも判断します。"
+      }
+    }
+  ]
+}

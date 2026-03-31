@@ -1,0 +1,33 @@
+{
+  "version": "s01",
+  "decisions": [
+    {
+      "id": "single-loop-core",
+      "title": "Start With The Irreducible Loop",
+      "description": "The first chapter shows only the user message, model call, optional tool use, and tool result append. This keeps attention on the harness invariant that every later chapter still relies on.",
+      "alternatives": "We could start with a more feature-rich agent, but that hides the core control loop under too much scaffolding.",
+      "zh": {
+        "title": "先从不可再简的循环开始",
+        "description": "第一章只展示用户消息、模型调用、可选工具调用和工具结果回写，先把后续所有章节都依赖的循环不变量讲清楚。"
+      },
+      "ja": {
+        "title": "まず不可約なループから始める",
+        "description": "最初の章はユーザーメッセージ、モデル呼び出し、任意のツール呼び出し、結果の追記だけを見せ、後続の全章が依存する不変条件に集中します。"
+      }
+    },
+    {
+      "id": "one-tool-surface",
+      "title": "Use One Real Action Surface",
+      "description": "A single bash tool is enough to prove that the loop is grounded in the real workspace. The point is not shell ergonomics yet; it is proving that the agent can observe and act.",
+      "alternatives": "Mock tools would be simpler, but they would weaken the lesson that the loop already connects model output to real side effects.",
+      "zh": {
+        "title": "先只开放一个真实动作面",
+        "description": "一个 bash 工具就足以证明循环已经接入真实工作区。这里的重点不是 shell 体验，而是先证明 agent 已经能观察和行动。"
+      },
+      "ja": {
+        "title": "最初は一つの実アクション面だけを開く",
+        "description": "bash ツール一つで、ループが実ワークスペースに接続されていることを示すには十分です。重要なのはシェル操作性ではなく、観測と実行が可能だと示すことです。"
+      }
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "version": "s05",
+  "title": "Skill Discovery",
+  "description": "Skills are discovered by metadata and activated only when relevant.",
+  "steps": [
+    {
+      "type": "user_message",
+      "content": "I need help writing release notes for changes under docs/.",
+      "annotation": "The request should trigger a documentation-oriented skill, not every skill."
+    },
+    {
+      "type": "tool_call",
+      "content": "{\"query\":\"release notes for docs changes\",\"path\":\"docs/guide.md\"}",
+      "toolName": "load_skill",
+      "annotation": "The runtime checks metadata and activation rules before loading instructions."
+    },
+    {
+      "type": "tool_result",
+      "content": "Activated skill: release-notes-writer\nReason: matches docs path and changelog-style request",
+      "toolName": "load_skill",
+      "annotation": "The selected skill is injected because it is relevant, not because it merely exists."
+    },
+    {
+      "type": "assistant_text",
+      "content": "I loaded the release-notes skill for this task and can now draft a concise changelog entry for the docs updates.",
+      "annotation": "Discovery and conditional activation keep context lean."
+    }
+  ]
+}
