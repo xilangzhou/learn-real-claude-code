@@ -68,3 +68,8 @@ python agents/s01_agent_loop.py
 
 `agents/s_full.py` は修正後の教材ハーネスを一つにまとめた参照実装です。
 ただし、これはあくまで教材であり、完全な実運用互換を主張するものではありません。
+
+## Acknowledgement
+
+このプロジェクトは [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code)
+をベースに改変したものです。貢献に感謝します。

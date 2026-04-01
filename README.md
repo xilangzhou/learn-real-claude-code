@@ -70,3 +70,8 @@ earlier ones even when the code stays self-contained.
 `agents/s_full.py` is the compact reference harness. It combines the corrected
 teaching ideas in one file, but it is still a teaching artifact, not a claim of
 full production parity.
+
+## Acknowledgement
+
+This project is based on [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code).
+We appreciate their work and thank them for their contributions.

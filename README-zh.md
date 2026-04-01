@@ -68,3 +68,8 @@ python agents/s01_agent_loop.py
 
 `agents/s_full.py` 是一份压缩后的参考 harness。它把更正后的教学机制放到同一个文件里，
 但它仍然只是教学产物，不代表完整生产实现。
+
+## Acknowledgement
+
+本项目基于 [shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 修改而来，
+感谢他们做出的贡献。
