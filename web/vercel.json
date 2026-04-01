@@ -1,17 +1,6 @@
 {
   "redirects": [
     {
-      "source": "/:path(.*)",
-      "has": [
-        {
-          "type": "host",
-          "value": "learn-real-claude-code.vercel.app"
-        }
-      ],
-      "destination": "https://learn.ownlab.app/:path",
-      "permanent": true
-    },
-    {
       "source": "/en",
       "destination": "/en/",
       "permanent": false
