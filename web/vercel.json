@@ -5,7 +5,7 @@
       "has": [
         {
           "type": "host",
-          "value": "learn-real-claude-agent.vercel.app"
+          "value": "learn-real-claude-code.vercel.app"
         }
       ],
       "destination": "https://learn.ownlab.app/:path",
