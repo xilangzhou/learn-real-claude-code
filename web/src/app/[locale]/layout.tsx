@@ -8,6 +8,14 @@ import "../globals.css";
 
 const locales = ["en", "zh", "ja"];
 const metaMessages: Record<string, typeof en> = { en, zh, ja };
+const SITE_URL = "https://learn.ownlab.app";
+const OG_IMAGE = "/lrcc.png";
+
+const ogLocales: Record<string, string> = {
+  en: "en_US",
+  zh: "zh_CN",
+  ja: "ja_JP",
+};
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -20,9 +28,49 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const messages = metaMessages[locale] || metaMessages.en;
+  const title = messages.meta?.title || "Learn Real Claude Code";
+  const description =
+    messages.meta?.description ||
+    "Build an AI coding agent from scratch, one concept at a time";
+  const pagePath = `/${locale}/`;
+
   return {
-    title: messages.meta?.title || "Learn Real Claude Code",
-    description: messages.meta?.description || "Build an AI coding agent from scratch, one concept at a time",
+    metadataBase: new URL(SITE_URL),
+    title,
+    description,
+    alternates: {
+      canonical: pagePath,
+      languages: {
+        en: "/en/",
+        zh: "/zh/",
+        ja: "/ja/",
+      },
+    },
+    openGraph: {
+      type: "website",
+      url: pagePath,
+      siteName: "Learn Real Claude Code",
+      title,
+      description,
+      locale: ogLocales[locale] || ogLocales.en,
+      images: [
+        {
+          url: OG_IMAGE,
+          alt: title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [
+        {
+          url: OG_IMAGE,
+          alt: title,
+        },
+      ],
+    },
   };
 }
 
